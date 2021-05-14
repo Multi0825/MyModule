@@ -1,4 +1,4 @@
-# 自作汎用的関数群
+# 自作汎用関数群 
 import os
 import time
 import datetime
@@ -69,6 +69,31 @@ def pkl_load(pkl_fn) :
     print(pkl_fn + ' has been loaded')
     return variable
 
+# パスファイル(オリジナル)を読込
+# パスファイル定義
+# 1行に1パス、PathId=path
+# *+Id=path(ex. *1=/dir)で書かれたものは別のパスに使える(PathId1=*1/)
+# 特殊なファイル名による不具合は知らない
+def read_path(path_fn) :
+    path_dict = {}
+    commons = {}
+    with open(path_fn, mode='r') as f :
+        for l in f :
+            l = l.replace('\n', '').split('=')
+            if len(l) == 2 : # 空行対策
+                path_id = l[0]
+                path = l[1]
+                # "*+Num"を置換(その行までに出てきているもの)
+                for c in commons.items() :
+                    if c[0] in path :
+                        path = path.replace(c[0],c[1])
+                # IDが"*+Num"を含むときは記録
+                if '*'in path_id :
+                    commons[path_id] = path
+                path_dict[path_id] = path
+    return path_dict
+
+################################## 未完 ##############################################
 # グラフパラメータ
 class FigParam() :
     def __init__(self, x, y, label='', title='', color=None, xlabel=None, ylabel=None, xlim=None, ylim=None, plot_type='plot') :
@@ -83,7 +108,7 @@ class FigParam() :
         self.ylim = ylim
         self.plot_type = plot_type
 
-# グラフ(未完)
+# グラフ
 class Figure() :
     def __init__(self,figsize=[6.4, 4.8]) :
         self.fig = plt.figure(figsize=figsize)
