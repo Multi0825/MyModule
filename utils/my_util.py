@@ -83,11 +83,11 @@ def read_path(path_fn) :
             if len(l) == 2 : # 空行対策
                 path_id = l[0]
                 path = l[1]
-                # "*+Num"を置換(その行までに出てきているもの)
+                # "*+Id"を置換(その行までに出てきているもの)
                 for c in commons.items() :
                     if c[0] in path :
                         path = path.replace(c[0],c[1])
-                # IDが"*+Num"を含むときは記録
+                # Idが"*+Id"のとき記録
                 if '*'in path_id :
                     commons[path_id] = path
                 path_dict[path_id] = path
