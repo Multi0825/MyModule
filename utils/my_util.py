@@ -1,9 +1,9 @@
 # 自作汎用関数群 
 import os
 import time
-import datetime
 import pickle as pkl
 import numpy as np
+import random
 import matplotlib.pyplot as plt
 
 # ルートディレクトリ取得
@@ -11,7 +11,6 @@ def get_root_dir() :
     cwd = os.getcwd()
     root = cwd.split('\\')[0]+'/'
     return root
-
 
 # ファイル出力のプリントを楽に
 # txt : 出力する文字列
@@ -93,6 +92,46 @@ def read_path(path_fn) :
                 path_dict[path_id] = path
     return path_dict
 
+# 重複のない乱数生成
+# a, b: a <= x < b (random.randintと異なる)
+# n: 個数
+def no_duplicated_randint(a, b, n, seed=None):
+    if n > np.abs(a-b) :
+        raise ValueError('Must be n>=|a-b|')
+    x = [i for i in range(a, b)]
+    y = []
+    for i in range(n) :
+        j = random.randint(0, len(x))
+        y.append(x.pop(j))
+    return y
+
+# データ量を均一化
+def equalize(a, b) :
+    add_inds = []
+    a_is_more = True if len(a) > len(b) else False # 戻り値の順番保持用
+    more = a if len(a) > len(b) else b
+    less = a if len(a) < len(b) else b
+    n_more = len(more)
+    n_less = len(less)
+    # できる限り重複を減らす
+    while n_more > n_less :
+        # 2倍以上差があるときはn_lessだけ追加
+        if n_more >= 2*n_less:
+            add_inds.extend(no_duplicated_randint(0, n_less, n_less))
+            n_more = n_more - n_less
+        # さもなくば差分追加
+        else :
+            add_inds.extend(no_duplicated_randint(0, n_less, np.abs(len(a)-len(b))) )
+            n_more = n_less
+    # 追加
+    for ai in add_inds :
+        less = np.concatenate([less, less[ai]], axis=0)
+    # 入力の順を保持
+    if a_is_more :
+        return more, less
+    else :
+        return less, more
+        
 ################################## 未完 ##############################################
 # グラフパラメータ
 class FigParam() :
