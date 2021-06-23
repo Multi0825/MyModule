@@ -7,7 +7,7 @@ import pywt
 # data : n_ch * n_sample
 # win_type : 窓関数種類(ハミング)
 # frame_size : 窓長(None: All)
-# overlap_rate : フレームサイズに対するオーバーラップの割合0~1(None: 0)
+# overlap_rate : フレームサイズに対するオーバーラップ率0~1(None: 0)
 def window(data, win_type='hamming', frame_size=None, overlap_rate=0) :
     if frame_size==None :
         frame_size = data.shape[1] # 全点
@@ -66,6 +66,7 @@ def stats_features(data, axis=2) :
         f.append(w_f)
     return np.array(f)
 
+# 使用非推奨
 def stats_features2(data, axis=2) :
     dim_0 = len(data)
     dim_1 = data[0].shape[0]
@@ -112,6 +113,9 @@ def dwt(data, wavelet='db4', level=4, mode='zero') :
     return cDs # n_dec * n_ch * n_feature
     
 # 論文参考FFT＋統計量(不完全)
+# using_dim: フーリエ係数使用次元(1~using_dim+1次元)
+# n_stats_win: 統計量まとめて計算するフレーム数
+# n_stats_overlap: 統計量まとめて計算するオーバーラップ率
 def fft2(data, win_type, fft_frame_size, overlap_rate, using_dim, n_stats_win, n_stats_overlap) :
     # 窓関数(＊ 全区間を対象(full_full_eeglab_pp)として、想起の前後も含めるのも有か)
     win_data = window(data, win_type=win_type, \
