@@ -177,6 +177,7 @@ try :
             # print('Test Accuracy:{}'.format(acc))
             return pred, acc
 except :
-    print('RVM is unavailable')
+    pass
+    # print('RVM is unavailable')
 
 
