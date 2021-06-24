@@ -101,7 +101,7 @@ def no_duplicated_randint(a, b, n, seed=None):
     x = [i for i in range(a, b)]
     y = []
     for i in range(n) :
-        j = random.randint(0, len(x))
+        j = random.randint(0, len(x)-1)
         y.append(x.pop(j))
     return y
 
