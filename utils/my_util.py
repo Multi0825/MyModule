@@ -123,7 +123,7 @@ def equalize(a, b, random_seed=None) :
             n_more = n_more - n_less
         # さもなくば差分追加
         else :
-            add_inds.extend(no_duplicated_randint(0, n_less, np.abs(len(a)-len(b), seed=random_seed)) )
+            add_inds.extend(no_duplicated_randint(0, n_less, np.abs(len(a)-len(b)), seed=random_seed))
             n_more = n_less
     # 追加
     for ai in add_inds :
