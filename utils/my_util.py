@@ -133,7 +133,12 @@ def equalize(a, b, random_seed=None) :
         return more, less # 戻り値はリスト化される
     else :
         return less, more
-        
+
+def shuffle(data, random_seed=None) :
+    random.seed(random_seed)
+    random.shuffle(data)
+    random.seed()
+    return data
 ################################## 未完 ##############################################
 # グラフパラメータ
 class FigParam() :
