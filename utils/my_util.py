@@ -107,6 +107,8 @@ def no_duplicated_randint(a, b, n, seed=None):
 
 # データ量を均一化
 def equalize(a, b, random_seed=None) :
+    a = list(a)
+    b = list(b)
     add_inds = []
     a_is_more = True if len(a) > len(b) else False # 戻り値の順番保持用
     more = a if len(a) > len(b) else b
@@ -125,10 +127,10 @@ def equalize(a, b, random_seed=None) :
             n_more = n_less
     # 追加
     for ai in add_inds :
-        less = np.concatenate([less, less[ai]], axis=0)
+        less.append(less[ai])
     # 入力の順を保持
     if a_is_more :
-        return more, less
+        return more, less # 戻り値はリスト化される
     else :
         return less, more
         
