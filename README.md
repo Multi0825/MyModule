@@ -1,2 +1,2 @@
 # MyModule
- Original Python Module
+研究で使用
