@@ -144,7 +144,7 @@ def extract_section(csv_fn, epoch_range, tmin, tmax, out_csv_fn) :
 
 # Emotiv Epoc出力データを読み込み用クラス
 class EpocEEG():
-    # csv_fn : EmotivEpocから出力されたCSVのファイル
+    # csv_fn : EmotivEpocから出力されたCSV(列: Time:[sfreq]Hz, Epoch, CH1,...CH14, (Label)でなければならない)
     # labels_fn : 各エポックがなんのイベントに対応しているかを示すファイル(行番号=エポックで1行1ラベル)
     # include_labels : CSVがラベルのカラムを含んでいるか
     # ※EDFはエポックを読み込む方法が分からないので保留
@@ -152,11 +152,13 @@ class EpocEEG():
         df = pd.read_csv(csv_fn)
         cols = df.columns
         # mne raw構造体を作成
-        ch_names = cols.to_list()[2:2+n_ch]
-        data = df.loc[:, ch_names].values.T * 1e-6 # mne : V, epoc : μV
-        sfreq = int(cols[0].split(':')[1].replace('Hz', ''))
-        info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types='eeg') # ch
+        self.ch_names = cols.to_list()[2:2+n_ch] 
+        data = df.loc[:, self.ch_names].values.T * 1e-6 # mne : V, epoc : μV
+        self.sfreq = int(cols[0].split(':')[1].replace('Hz', '')) 
+        info = mne.create_info(ch_names=self.ch_names, sfreq=self.sfreq, ch_types='eeg') # ch
         self.raw = mne.io.RawArray(data, info) # mne Raw構造体
+        # self.raw.info['sfreq']
+        # 
         # エポックのラベルを読み込み
         self.n_epoch = int(np.max(df.loc[:,'Epoch'].values)) + 1 # エポック数
         if labels_fn != None :
@@ -180,7 +182,7 @@ class EpocEEG():
     # target_epoch : 対象エポック(None:全範囲)
     def get_data(self, target_epoch=None, target_chs=None):
         if target_chs == None :
-            target_chs = self.raw.ch_names
+            target_chs = self.ch_names
         # エポック指定
         if target_epoch==None:
             data, _ = self.raw[target_chs,:] # n_ch*n_sample
@@ -309,7 +311,7 @@ class EpocEEG():
             events[e, 0] = self.epoch_ranges[e, 0]
             events[e, 2] = labels_dic[self.epoch_labels[e]]
         events = events.astype(np.int32) # 整数化
-        info = mne.create_info(ch_names=['STI'], sfreq=self.raw.info['sfreq'], ch_types=['stim'])
+        info = mne.create_info(ch_names=['STI'], sfreq=self.sfreq, ch_types=['stim'])
         stim_data = np.zeros((1, len(self.raw.times)))
         stim_raw = mne.io.RawArray(stim_data, info)
         self.raw.add_channels([stim_raw], force_update_info=True)
@@ -357,14 +359,13 @@ class EpocEEG():
         # 時間、エポック、電極(データ)のカラムを作成
         df = pd.DataFrame()
         time = self.raw.times
-        df['Time:{}Hz'.format(int(self.raw.info['sfreq']))] = time
+        df['Time:{}Hz'.format(int(self.sfreq))] = time
         epoch = np.zeros((len(time)))
         for e in range(self.n_epoch):
             epoch[int(self.epoch_ranges[e,0]):int(self.epoch_ranges[e,1])+1] = e
         df['Epoch'] = epoch
-        ch_names = self.raw.info['ch_names']
         ch_datas = self.get_data().T * 1e+6 
-        df[ch_names] = ch_datas
+        df[self.ch_names] = ch_datas
         # ラベルを含める
         if include_labels :
             label = []
