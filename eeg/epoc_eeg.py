@@ -4,11 +4,6 @@ import matplotlib.pyplot as plot
 import pandas as pd
 import mne
 
-# EmotivEpocチャンネル数
-n_ch = 14
-ch_names = ['F3', 'FC5', 'AF3', 'F7', 'T7', 'P7', 'O1', \
-            'O2', 'P8', 'T8', 'F8', 'AF4', 'FC6', 'F4']
-
 # EmotivEpoc出力のCSVファイル操作関数
 # CSVファイルにラベルを追加
 def include_labels(csv_fn, labels_fn, out_fn=None) :
@@ -152,7 +147,13 @@ class EpocEEG():
         df = pd.read_csv(csv_fn)
         cols = df.columns
         # mne raw構造体を作成
-        self.ch_names = cols.to_list()[2:2+n_ch] 
+        # EmotivEpocチャンネル数
+        n_ch = 14
+        # ch_names = ['F3', 'FC5', 'AF3', 'F7', 'T7', 'P7', 'O1', \
+        #            'O2', 'P8', 'T8', 'F8', 'AF4', 'FC6', 'F4']
+        # ch = cols.to_list()[ch_inds[0]:ch_inds[1]] # 電極数を可変にする場合
+        self.n_ch = n_ch
+        self.ch_names = cols.to_list()[2:2+self.n_ch] 
         data = df.loc[:, self.ch_names].values.T * 1e-6 # mne : V, epoc : μV
         self.sfreq = int(cols[0].split(':')[1].replace('Hz', '')) 
         info = mne.create_info(ch_names=self.ch_names, sfreq=self.sfreq, ch_types='eeg') # ch
@@ -340,11 +341,11 @@ class EpocEEG():
 
     # 基準値減算したデータ取得(各エポック毎、各電極の平均値をオリジナルから引く)
     def remove_baseline(self) :
-        new_data = np.empty((n_ch,0))
+        new_data = np.empty((self.n_ch,0))
         for e in range(self.n_epoch) :
             epoch_data = self.get_data(target_epoch=e)
             epoch_means = np.mean(epoch_data, axis=1) # エポックの各チャンネル毎の平均値
-            for ch in range(n_ch) :
+            for ch in range(self.n_ch) :
                 epoch_data[ch] = epoch_data[ch] - epoch_means[ch]    
             new_data = np.concatenate([new_data, epoch_data], axis=1)
         return new_data
@@ -402,11 +403,11 @@ class Preprocesser() :
     
     # 基準値減算したデータ取得(各エポック毎、各電極の平均値をオリジナルから引く)
     def remove_baseline(self, epoc_eeg) :
-        new_data = np.empty((n_ch,0))
+        new_data = np.empty((epoc_eeg.n_ch,0))
         for e in range(epoc_eeg.n_epoch) :
             epoch_data = epoc_eeg.get_data(target_epoch=e)
             epoch_means = np.mean(epoch_data, axis=1) # エポックの各チャンネル毎の平均値
-            for ch in range(n_ch) :
+            for ch in range(epoc_eeg.n_ch) :
                 epoch_data[ch] = epoch_data[ch] - epoch_means[ch]    
             new_data = np.concatenate([new_data, epoch_data], axis=1)
         epoc_eeg.set_data(new_data)
@@ -414,7 +415,7 @@ class Preprocesser() :
     # ICAによるアーティファクト除去
     def remove_artifacts(self, epoc_eeg) :
         # ICA
-        ica = mne.preprocessing.ICA(n_components=n_ch, n_pca_components=n_ch, max_iter=100)
+        ica = mne.preprocessing.ICA(n_components=epoc_eeg.n_ch, n_pca_components=epoc_eeg.n_ch, max_iter=100)
         ica.fit(epoc_eeg.raw)
         # アーティファクト除去
         ica.detect_artifacts(epoc_eeg.raw)
