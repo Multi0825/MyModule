@@ -1,5 +1,4 @@
 # 坂井関数(汎用)
-import random
 from scipy import stats
 from sklearn import preprocessing
 from sklearn.metrics import accuracy_score
@@ -27,17 +26,6 @@ def standardization(data, axis=0):
 # data: n_ch * n_sample
 def zscore(data, axis=0) :
     return stats.zscore(data, axis=axis)
-
-# 重複のない乱数生成
-# a, b: 範囲
-# k: 個数
-def rand_ints_nodup(a, b, k):
-    ns = []
-    while len(ns) < k:
-        n = random.randint(a, b)
-        if not n in ns:
-            ns.append(n)
-    return ns
 
 # 分類結果評価
 # y_pred: 予測
