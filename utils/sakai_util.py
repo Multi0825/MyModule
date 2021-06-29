@@ -10,12 +10,17 @@ from sklearn.metrics import cohen_kappa_score
 from sklearn.metrics import confusion_matrix
 
 # データの標準化
-# data: n_ch * n_sample
-def standardization(data):
+# data: dim=2
+# axis: 
+def standardization(data, axis=0):
     ss = preprocessing.StandardScaler() 
     # fit_transform: データ数*特徴量を特徴量毎(縦)に正規化
-    # 電極毎に正規化したいため転置が必要
-    sd_data = ss.fit_transform(data.T).T 
+    if axis==1 :
+        sd_data = ss.fit_transform(data.T).T 
+    elif axis==0: 
+        sd_data = ss.fit_transform(data)
+    else :
+        raise ValueError('axis = 0 or 1')
     return sd_data
 
 # データ正規化
