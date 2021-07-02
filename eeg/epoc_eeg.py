@@ -27,8 +27,7 @@ def include_labels(csv_fn, labels_fn, out_fn=None) :
         cols = df.columns.to_list()
     df.insert(len(cols), 'Label', epoch_labels) # 最後に追加
     # CSV出力
-    if out_fn==None :
-        out_fn = csv_fn
+    out_fn = csv_fn if out_fn is None else out_fn
     df.to_csv(out_fn, index=False)
     print(out_fn+' has been created')
 
@@ -49,8 +48,7 @@ def sort_csv(csv_fns, out_fn=None):
             epoch_data = df[df['Epoch']==e]
             full_df = pd.concat([full_df,epoch_data])
     # CSV出力
-    if out_fn==None :
-        out_fn = 'full.csv'
+    out_fn = 'full.csv' if out_fn is None else out_fn
     full_df.to_csv(out_fn, index=False)
     print(out_fn+' has been created')
 
@@ -79,13 +77,12 @@ def merge_csv(csv_fns, labels_fns=None, out_csv_fn=None, out_labels_fn=None) :
     sfreq = int(cols[0].split(':')[1].replace('Hz', ''))
     full_df.loc[:,cols[0]] = [i*(1/sfreq) for i in range(len(full_df.loc[:,cols[0]]))]
     # CSV出力
-    if out_csv_fn == None :
-        out_csv_fn = 'merged.csv'
+    out_csv_fn = 'merged.csv' if out_csv_fn is None else out_csv_fn
     full_df.to_csv(out_csv_fn, index=False)
     print(out_csv_fn + ' has been created')
 
     # ラベル結合
-    if labels_fns != None :
+    if labels_fns is not None :
         full_labels = [] # 全結合ラベル
         for labels_fn in labels_fns :
             # ラベル読み込み
@@ -95,8 +92,7 @@ def merge_csv(csv_fns, labels_fns=None, out_csv_fn=None, out_labels_fn=None) :
             # 結合
             full_labels.extend(labels)
         # ラベル出力
-        if out_labels_fn == None :
-            out_labels_fn = 'merged_labels.txt'
+        out_labels_fn = 'merged_labels.txt' if out_labels_fn is None else out_labels_fn
         with open(out_labels_fn, mode='w') as f:
             f.write('\n'.join(full_labels))
         print(out_labels_fn + ' has been created')
@@ -162,7 +158,7 @@ class EpocEEG():
         # 
         # エポックのラベルを読み込み
         self.n_epoch = int(np.max(df.loc[:,'Epoch'].values)) + 1 # エポック数
-        if labels_fn != None :
+        if labels_fn is not None :
             with open(labels_fn, mode='r') as f :
                 self.epoch_labels = [label.replace('\n', '')for label in f] # エポック毎のラベル
             self.labels = list(set(self.epoch_labels)) # ラベル一覧
@@ -182,10 +178,10 @@ class EpocEEG():
     # データ取得
     # target_epoch : 対象エポック(None:全範囲)
     def get_data(self, target_epoch=None, target_chs=None):
-        if target_chs == None :
+        if target_chs is None :
             target_chs = self.ch_names
         # エポック指定
-        if target_epoch==None:
+        if target_epoch is None:
             data, _ = self.raw[target_chs,:] # n_ch*n_sample
         else : 
             data, _ = self.raw[target_chs,int(self.epoch_ranges[target_epoch,0]):int(self.epoch_ranges[target_epoch,1])+1]
@@ -196,7 +192,7 @@ class EpocEEG():
     # data : 対象データ
     # target_epoch : 指定エポック(None:全範囲)
     def set_data(self, data, target_epoch=None) :
-        if target_epoch == None :
+        if target_epoch is None :
             self.raw[:,:] = data
         else :
             original_data, _= self.raw[:,int(self.epoch_ranges[target_epoch,0]):int(self.epoch_ranges[target_epoch,1])+1]
@@ -217,20 +213,16 @@ class EpocEEG():
     # show : 画像を表示しない
     # out_fn : 指定した場合、画像ファイル出力()
     def plot_data(self, target_chs=None, target_epoch=None, tmin=None, tmax=None, scalings=None, block=True, show=True, title=None, out_fn=None):
-        if title==None :
-            title=''
+        title='' if title is None else title
         # mneのフォーマット
-        if scalings == None :
-            scalings={'eeg':'auto'}
-        else :
-            scalings={'eeg':scalings}
+        scalings={'eeg':'auto'} if scalings is None else {'eeg':scalings}
         # エポック指定有
-        if target_epoch != None:
+        if target_epoch is not None:
             epoch_start = self.raw.times[int(self.epoch_ranges[target_epoch,0])] # エポック開始時間
             epoch_end = self.raw.times[int(self.epoch_ranges[target_epoch,1])] # エポック終了時間
-            if tmin == None :
+            if tmin is None :
                 tmin = 0
-            if tmax == None :
+            if tmax is None :
                 tmax = epoch_end - epoch_start
             # tminはtmax以下でなければならない
             if tmin >= tmax : 
@@ -254,7 +246,7 @@ class EpocEEG():
                 fig = self.raw.plot(start=start, duration=duration, \
                                     scalings=scalings, title=title, block=block, show=show)
             # 画像保存
-            if out_fn != None :
+            if out_fn is not None :
                 fig.savefig(out_fn)
                 print(out_fn+' has been created')
                 #if show :
@@ -262,9 +254,9 @@ class EpocEEG():
                 #fig.close()
         else :
             # エポック指定無
-            if (tmin==None) or (tmin<0):
+            if (tmin is None) or (tmin<0):
                 tmin = 0
-            if (tmax==None) or (self.raw.times[0]+tmax):
+            if (tmax is None) or (self.raw.times[0]+tmax):
                 tmax = self.raw.times[-1] - self.raw.times[0]
             # tminはtmax以下でなければならない
             if tmin >= tmax :
@@ -272,14 +264,14 @@ class EpocEEG():
             start = self.raw.times[0] + tmin            
             end = self.raw.times[0] + tmax
             duration = end - start
-            if target_chs != None:
+            if target_chs is not None:
                 fig = self.raw.plot(start=start, duration=duration, \
                                     n_channels=target_chs, scalings=scalings, title=title, block=block, show=show)
             else :
                 fig = self.raw.plot(start=start, duration=duration, \
                                     scalings=scalings, title=title, block=block, show=show)
             # 画像保存
-            if out_fn != None :
+            if out_fn is not None :
                 fig.savefig(out_fn)
                 print(out_fn+' has been created')
                 #if show :
@@ -295,10 +287,8 @@ class EpocEEG():
     #               ex. tmin=-1, tmax=5 : エポック開始時間の(-1s~+5s)の範囲(tmin < tmax, tmin:None=0,tmax:None=epoch0 duration)
     # labels_dic : ラベルとイベント番号の対応辞書(Noneで自動) 
     def plot_erp(self, target_labels, tmin=None, tmax=None, target_chs=None, labels_dic=None, title=None, show=True, out_fn=None):
-        if title != None :
-            titles = {'eeg':title}
         # ラベルと番号を対応付け
-        if labels_dic == None :
+        if labels_dic is None :
             labels_dic = dict()
             for i in range(len(self.labels)) :
                 labels_dic[self.labels[i]] = i 
@@ -306,7 +296,7 @@ class EpocEEG():
             # labels_dicは辞書型でなければならない
             if not(type(labels_dic) is dict):
                 raise ValueError('labels_dic must be dict')
-        # エポック情報(開始点、ラベル)持つ電極とそのデータを作成
+        # エポック情報(開始点、ラベル)持つ電極を作成、エポックオブジェクト作成
         events = np.zeros((self.n_epoch, 3)) # n_epoch * [start, 0, label]
         for e in range(self.n_epoch) :
             events[e, 0] = self.epoch_ranges[e, 0]
@@ -317,17 +307,15 @@ class EpocEEG():
         stim_raw = mne.io.RawArray(stim_data, info)
         self.raw.add_channels([stim_raw], force_update_info=True)
         self.raw.add_events(events, stim_channel='STI')
-        # エポックオブジェクト
         event_id = [labels_dic[id] for id in target_labels]
-        if tmin == None :
-            tmin = 0
-        if tmax == None :
-            tmax = self.raw.times[int(self.epoch_ranges[0,1])] - 0
+        tmin = 0 if tmin is None else tmin
+        tmax = self.raw.times[int(self.epoch_ranges[0,1])] if tmax is None else tmax
         # tminはtmax以下でなければならない
         if tmin >= tmax : 
-            raise ValueError('time_range[1] must be larger than time_range[0]')
+            raise ValueError('tmax must be larger than tmin')
         envoked_no_ref = mne.Epochs(self.raw, events=events.astype(np.int32), event_id=event_id,\
                                     tmin=tmin, tmax=tmax, baseline=None, picks=target_chs).average()
+        titles = {'eeg':title} if title is not None else None
         fig = envoked_no_ref.plot(titles=titles, show=show)
         # 画像保存
         if out_fn != None :
@@ -378,7 +366,7 @@ class EpocEEG():
         df.to_csv(csv_fn, index=False)
         print(csv_fn+' has been created')
         # ラベル出力
-        if labels_fn != None :
+        if labels_fn is not None :
             with open(labels_fn, mode='w') as f:
                 f.write('\n'.join(self.epoch_labels))
             print(labels_fn+' has been created')
