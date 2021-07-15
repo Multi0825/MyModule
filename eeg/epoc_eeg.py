@@ -139,7 +139,7 @@ class EpocEEG():
     # labels_fn : 各エポックがなんのイベントに対応しているかを示すファイル(行番号=エポックで1行1ラベル)
     # include_labels : CSVがラベルのカラムを含んでいるか
     # ※EDFはエポックを読み込む方法が分からないので保留
-    def __init__(self, csv_fn, labels_fn=None, include_labels=False) :
+    def __init__(self, csv_fn, labels_fn=None, include_labels=True) :
         df = pd.read_csv(csv_fn)
         cols = df.columns
         # mne raw構造体を作成
@@ -177,6 +177,7 @@ class EpocEEG():
     
     # データ取得
     # target_epoch : 対象エポック(None:全範囲)
+    # target_chs : 対象電極(None:全範囲)
     def get_data(self, target_epoch=None, target_chs=None):
         if target_chs is None :
             target_chs = self.ch_names
