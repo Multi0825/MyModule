@@ -19,7 +19,6 @@ class BOF() :
         codewords = np.zeros((1,self.codebook.shape[1]))
         for fv in feat_vecs :
             dists = np.linalg.norm(self.codebook - fv, axis=1) # ユークリッド距離
-            print(dists.shape)
             min_ind = np.argmin(dists)
             codewords = np.concatenate([codewords, self.codebook[min_ind].reshape(1,-1)])
         codewords = codewords[1:]
@@ -33,6 +32,5 @@ class BOF() :
             dists = np.linalg.norm(self.codebook - fv, axis=1) # ユークリッド距離
             min_ind = np.argmin(dists)
             min_inds.append(min_ind)
-        print(min_inds)
         hist = [min_inds.count(i) for i in range(len(self.codebook))]
         return hist
