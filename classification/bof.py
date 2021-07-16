@@ -26,7 +26,7 @@ class BOF() :
     
     # ユークリッド距離が近いcodewordに変換、ヒストグラムで表現
     # feature: n_vecs x n_feats
-    def histgram(self, feat_vecs) :
+    def histogram(self, feat_vecs) :
         min_inds = []
         for fv in feat_vecs :
             dists = np.linalg.norm(self.codebook - fv, axis=1) # ユークリッド距離
