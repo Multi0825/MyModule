@@ -63,7 +63,7 @@ class MlpClassifier():
     # lr: 学習率
     # k_fold: CV分割数、デフォルト0は訓練、検証データに分けない
     # optim_class: 最適化関数、デフォルトはAdam 
-    def train(self, epoch, batch_size, lr=0.01, k_fold=0,random_seed=None\
+    def train(self, epoch, batch_size, lr=0.01, k_fold=0, random_seed=None,\
               optim_class=optim.Adam, lossfunc_class=nn.CrossEntropyLoss):
         if self.tr_dataset == None :
             raise ValueError('No Training Data')
