@@ -208,7 +208,7 @@ class MlpClassifier():
     def load_model(self, model_fns):
         self.tr_model = []
         for i, model_fn in enumerate(model_fns) :
-            self.tr_model.append(copy.deepcopy(self.tr_model)]
+            self.tr_model.append(copy.deepcopy(self.__init_model))
             self.tr_model[-1].load_state_dict(torch.load(model_fn))
             print('Load ' + model_fn)
         
