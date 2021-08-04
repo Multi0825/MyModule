@@ -114,10 +114,10 @@ class MlpClassifier():
             if is_cv :
                 print('K: ',k)
             tr_loader = DataLoader(Subset(self.tr_dataset, tr_inds[k]), batch_size=batch_size, \
-                                   shuffle=True, num_workers=0, pin_memory=False) # 訓練ローダ
+                                   shuffle=False, num_workers=0, pin_memory=False) # 訓練ローダ
             if is_cv:
                 val_loader = DataLoader(Subset(self.tr_dataset, val_inds[k]), batch_size=batch_size, \
-                                        shuffle=True, num_workers=0, pin_memory=False) # 検証ローダ(CV)
+                                        shuffle=False, num_workers=0, pin_memory=False) # 検証ローダ(CV)
             optimizer = optim_class(model[k].parameters(), lr=lr) # オプティマイザ
             lossfunc = lossfunc_class() # 損失関数
             for e in range(epoch):
@@ -175,7 +175,7 @@ class MlpClassifier():
             raise ValueError('No Trained Model')
         # 絶対にDataLoader及びDatasetにする必要がない
         test_loader = DataLoader(self.test_dataset, batch_size=len(self.test_dataset), \
-                                shuffle=True, num_workers=0, pin_memory=False)
+                                shuffle=False, num_workers=0, pin_memory=False)
         test_losses = []
         test_accs = []
         test_outs = []
