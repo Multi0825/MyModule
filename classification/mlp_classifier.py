@@ -1,4 +1,5 @@
 # ハイパーパラメータ等を入力し、クラス分類(訓練、検証)
+# プロトタイプ(改良の余地あり)
 import copy
 import os
 import logging
@@ -16,17 +17,14 @@ class MlpClassifier():
     # tr_data, tr_label: 訓練データ、訓練ラベル
     # test_data, test_label: テストデータ、テストラベル    
     # out_path: 出力ディレクトリ
-    def __init__(self, init_model,  out_path=None):
+    def __init__(self, init_model):
         self.__init_model = copy.deepcopy(init_model) # モデル初期状態
         self.tr_model = [] # 訓練済みモデル
         self.tr_dataset = None # 訓練データセット
         self.test_dataset = None # テストデータセット
         self.device = 'cuda:0' if torch.cuda.is_available() else 'cpu'# GPU有無
         self.__init_model.to(self.device)
-        self.out_path = out_path # 作成ファイル出力先
-        if (self.out_path!=None) and (not os.path.exists(self.out_path)):
-            os.makedirs(self.out_path)
-            # raise FileNotFoundError(self.out_path+" is not found !")
+
 
     # データを設定
     def set_data(self, tr_data, tr_label, test_data, test_label) :
@@ -65,7 +63,7 @@ class MlpClassifier():
     # lr: 学習率
     # k_fold: CV分割数、デフォルト0は訓練、検証データに分けない
     # optim_class: 最適化関数、デフォルトはAdam 
-    def train(self, epoch, batch_size, lr=0.01, k_fold=0,\
+    def train(self, epoch, batch_size, lr=0.01, k_fold=0,random_seed=None\
               optim_class=optim.Adam, lossfunc_class=nn.CrossEntropyLoss):
         if self.tr_dataset == None :
             raise ValueError('No Training Data')
@@ -79,7 +77,7 @@ class MlpClassifier():
             print('K: ', k_fold)
             is_cv = True
             feature_inds = np.arange(len(self.tr_dataset.tensors[0]))
-            kf = KFold(n_splits=k_fold, shuffle=True)
+            kf = KFold(n_splits=k_fold, shuffle=True, random_state=random_seed)
             tr_inds = [] 
             val_inds = []
             for tr_i, val_i in kf.split(feature_inds):
@@ -95,12 +93,12 @@ class MlpClassifier():
         # 訓練済みモデルが無ければ、初期モデルをk個複製
         if len(self.tr_model) == 0 :
             model = [copy.deepcopy(self.__init_model) for k in range(k_fold)]
-        # 訓練済みモデルが1つならば、それをk個複製
-        elif len(self.tr_model) == 1:
-            model = [copy.deepcopy(self.tr_model) for k in range(k_fold)]
         # 訓練済みモデルがk個ならば、そのまま代入
         elif len(self.tr_model) == k_fold :
             model = self.tr_model
+        # 訓練済みモデルが1つならば、それをk個複製
+        elif len(self.tr_model) == 1:
+            model = [copy.deepcopy(self.tr_model) for k in range(k_fold)]
         # その他はエラー
         else :
             raise ValueError("k_fold's Value Don't Suit tr_model's Length\nk_fold Must Be 1 or tr_model's Length({})".format(len(self.tr_model)))
@@ -170,7 +168,6 @@ class MlpClassifier():
 
 
     # テスト
-    # 出力を返す用に修正が必要(なんのための)
     def test(self, lossfunc_class=nn.CrossEntropyLoss) :
         if self.test_dataset == None :
             raise ValueError('No Test Data')
@@ -185,7 +182,7 @@ class MlpClassifier():
         print('Start To Test')
         lossfunc = lossfunc_class() # 損失関数
         for k in range(len(self.tr_model)) :
-            print('Model')
+            print('Model: {}'.format(k))
             self.tr_model[k].eval()
             with torch.no_grad():
                 for x, y in test_loader:
@@ -199,8 +196,23 @@ class MlpClassifier():
                     test_accs.append(sum_hits/len(x))       
         return test_outs, test_losses, test_accs
     
-    def save_model(self, model_fn):
-        pass
+    # モデルパラメータ保存
+    # model_fns: ファイル名list
+    def save_model(self, model_fns):
+        for i,model in enumerate(self.tr_model) :
+            torch.save(model.state_dict(), model_fns[i])
+            print('Save '+ model_fns[i])
+    
+    # モデルパラメータ読み込み
+    # model_fns: ファイル名list
+    def load_model(self, model_fns):
+        self.tr_model = []
+        for i, model_fn in enumerate(model_fns) :
+            self.tr_model.append(copy.deepcopy(self.tr_model)]
+            self.tr_model[-1].load_state_dict(torch.load(model_fn))
+            print('Load ' + model_fn)
+        
+        
 
 
 

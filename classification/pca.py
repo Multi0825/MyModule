@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from sklearn.decomposition import PCA
+import sklearn.decomposition as decomp
 # 主成分分析(PCA)の結果をCSVに出力
 # tr_data: 訓練データ(n_samples * n_feats)
 # test_data: テストデータ(指定しない場合、訓練をそのまま)
@@ -10,10 +10,10 @@ from sklearn.decomposition import PCA
 # n_components: 成分数(None: min(n_samples, n_feats)-1)
 # comps_plt: 描画する成分番号[X,Y]
 # XXX_fn: 各種ファイル名
-def pca(tr_data, test_data=None, labels=None, feat_labels=None, 
+def PCA(tr_data, test_data=None, labels=None, feat_labels=None, 
         n_components=None, comps_plt=[1,2],
         feat_fn='./pca_feat.csv', plt_fn='./pca.png', evr_fn='./evr.csv', eigen_fn='./eigen.csv') :
-    pca = PCA(n_components=n_components)
+    pca = decomp.PCA(n_components=n_components)
     if test_data is None :
         feats = pca.fit_transform(tr_data)
     else :
