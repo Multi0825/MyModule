@@ -134,6 +134,9 @@ def extract_section(csv_fn, epoch_range, tmin, tmax, out_csv_fn) :
 
 
 # Emotiv Epoc出力データを読み込み用クラス
+# 変更予定(途中)
+# ・Stageに対応(読込まではできる)
+
 class EpocEEG():
     # csv_fn : EmotivEpocから出力されたCSV(列: Time:[sfreq]Hz, Epoch, CH1,...CH14, (Label)でなければならない)
     # labels_fn : 各エポックがなんのイベントに対応しているかを示すファイル(行番号=エポックで1行1ラベル)
@@ -161,10 +164,10 @@ class EpocEEG():
         if labels_fn is not None :
             with open(labels_fn, mode='r') as f :
                 self.epoch_labels = [label.replace('\n', '')for label in f] # エポック毎のラベル
-            self.labels = list(set(self.epoch_labels)) # ラベル一覧
+            self.labels = sorted(set(self.epoch_labels)) # ラベル一覧
         elif include_labels:
             self.epoch_labels = [df[df['Epoch']==e].iloc[-1]['Label'] for e in range(self.n_epoch)]
-            self.labels = list(set(self.epoch_labels))
+            self.labels = sorted(set(self.epoch_labels))
         else :
             self.epoch_labels = [0 for e in range(self.n_epoch)]
             self.labels = ['0']
@@ -174,6 +177,18 @@ class EpocEEG():
             self.epoch_ranges[e,0] = df[df['Epoch']==e].index[0]
             self.epoch_ranges[e,1] = df[df['Epoch']==e].index[-1] 
         
+        # ステージ(ない場合もある)
+        if 'Stage' in cols :
+            self.stages = list(np.unique(df['Stage'].values))
+            self.stage_starts = [] # ステージの開始点(全てのステージは連続を前提、次のステージの開始点-1が終了点)
+            for e in range(self.n_epoch) :
+                esr = dict()
+                for stg in self.stages :
+                    esr[stg] = df[(df['Epoch']==e) & (df['Stage']==stg)]
+                self.stage_starts.append(esr)
+
+
+
     
     # データ取得
     # target_epoch : 対象エポック(None:全範囲)
