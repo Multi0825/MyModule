@@ -11,16 +11,16 @@ import mne
 # KARAONEデータ(CSVに変換済)を読み込み用クラス
 class KaraoneEEG():
     # csv_fn : KARAONEデータCSV(列: Time:[sfreq]Hz, Epoch, CH1,...CH62, Label, Stage)
-    # target_ch: 
-    def __init__(self, csv_fn, target_chs=None) :
+    # target_stage: None=full, resting, stimuli,thinking, speaking  
+    def __init__(self, csv_fn, target_stage=None) :
         df = pd.read_csv(csv_fn)
+        if target_stage is not None :
+            df = df[df['Stage']==target_stage]
+            df = df.reset_index(drop=True)
         cols = df.columns
         # mne raw構造体を作成
         # KARAONE有効チャンネル数
         n_ch = 62
-        # ch_names = ['F3', 'FC5', 'AF3', 'F7', 'T7', 'P7', 'O1', \
-        #            'O2', 'P8', 'T8', 'F8', 'AF4', 'FC6', 'F4']
-        # ch = cols.to_list()[ch_inds[0]:ch_inds[1]] # 電極数を可変にする場合
         self.n_ch = n_ch
         self.ch_names = cols.to_list()[2:2+self.n_ch] 
         data = df.loc[:, self.ch_names].values.T * 1e-6 # mne : V, epoc : μV
