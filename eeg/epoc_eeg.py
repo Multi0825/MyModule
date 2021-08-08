@@ -142,7 +142,7 @@ class EpocEEG():
     # labels_fn : 各エポックがなんのイベントに対応しているかを示すファイル(行番号=エポックで1行1ラベル)
     # include_labels : CSVがラベルのカラムを含んでいるか
     # ※EDFはエポックを読み込む方法が分からないので保留
-    def __init__(self, csv_fn, labels_fn=None, include_labels=True) :
+    def __init__(self, csv_fn, labels_fn=None, include_labels=True, target_stage=None) :
         df = pd.read_csv(csv_fn)
         cols = df.columns
         # mne raw構造体を作成
@@ -180,12 +180,11 @@ class EpocEEG():
         # ステージ(ない場合もある)
         if 'Stage' in cols :
             self.stages = list(np.unique(df['Stage'].values))
-            self.stage_starts = [] # ステージの開始点(全てのステージは連続を前提、次のステージの開始点-1が終了点)
-            for e in range(self.n_epoch) :
-                esr = dict()
-                for stg in self.stages :
-                    esr[stg] = df[(df['Epoch']==e) & (df['Stage']==stg)]
-                self.stage_starts.append(esr)
+            self.stage_starts = dict() # ステージの開始点stage x epoch(全てのステージは連続を前提、次のステージの開始点-1が終了点)
+            for stg in self.stages :
+                self.stage_starts[stg] = []
+                for e in range(self.n_epoch) :
+                    self.stage_starts[stg].append(df[(df['Stage']==stg) & (df['Epoch']==e)].index[0])
 
 
 
