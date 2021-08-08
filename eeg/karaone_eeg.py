@@ -46,7 +46,7 @@ class KaraoneEEG():
         for e in range(self.n_epoch) :
             esr = dict()
             for stg in self.stages :
-                esr[stg] = df[(df['Epoch']==e) & (df['Stage']==stg)]
+                esr[stg] = df[(df['Epoch']==e) & (df['Stage']==stg)].index[0]
             self.stage_starts.append(esr)
     
     # データ取得
