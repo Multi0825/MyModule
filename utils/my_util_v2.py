@@ -115,7 +115,7 @@ def no_duplicated_randint(a, b, n, seed=None):
         y.append(x.pop(j))
     return y
 
-# データ量を均一化
+# データ量を均一化(少ない方を増加)
 def equalize(a, b, random_seed=None) :
     a = list(a)
     b = list(b)
