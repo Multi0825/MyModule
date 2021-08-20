@@ -1,15 +1,12 @@
 # ハイパーパラメータ等を入力し、クラス分類(訓練、検証)
-import copy
-import os
-import logging
 import numpy as np
 import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
 from torch import optim as optimizer
 from torch.utils.data import TensorDataset, DataLoader, Subset
-from sklearn.model_selection import KFold, train_test_split
-
+from sklearn.model_selection import train_test_split
+from _classifier_base import ClassifierBase
 
 # numpy.ndarray->torch.tensor
 # data_type: numpy dtype
@@ -40,25 +37,8 @@ def split_train_test(data, label, train_size=0.75,
         test_y = np2torch(test_y, data_type=cast_label_type)
     return train_x, test_x, train_y, test_y
 
-# 分類器
-class ClassiferBase() :
-    def __init__(self) :
-        pass
-    def train(self) :
-        pass
-    def test(self) :
-        pass
-    def train_test(self) :
-        pass
-    # 特定の引数を抽出
-    # @staticmethod
-    # def _parse_args(kwargs, group) :
-    #     target_keys = [key for key in kwargs.keys() if group in key]
-    #     new_kwargs = {key.split('__')[1]:kwargs[key] for key in target_keys}
-    #     return new_kwargs
-
 # DNN分類器
-class DNNClassifier(ClassiferBase):
+class DNNClassifier(ClassifierBase):
     '''
     model: モデルクラス
     model: モデル引数(辞書型)
@@ -273,6 +253,7 @@ class DNNClassifier(ClassiferBase):
     # モデルのパラメータ保存
     def save_model(self, model_fn):
         torch.save(self.model.state_dict(), model_fn)
+
     # モデルのパラメータ読み込み
     # 要確認 パラメータをロードした後、optim(model.parameters())を再生成する必要はないのか
     def load_model(self, model_fn) :
