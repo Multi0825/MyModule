@@ -1,5 +1,5 @@
 # 分類器
-class ClassifierBase() :
+class _ClassifierBase() :
     def __init__(self) :
         pass
     def train(self) :
