@@ -1,16 +1,15 @@
 # 特徴量抽出、ラベルとセットで出力
 import numpy as np
-from scipy import signal, fftpack, stats
+from scipy import signal, fft, stats
 import pywt
         
-# 窓関数を適用し、n_window*n_ch*frame_sizeのデータ作成
+# 窓関数を適用し、n_win*n_ch*frame_sizeのデータ作成
 # data : n_ch * n_sample
 # win_type : 窓関数種類(ハミング)
 # frame_size : 窓長(None: All)
 # overlap_rate : フレームサイズに対するオーバーラップ率0~1(None: 0)
 def window(data, win_type='hamming', frame_size=None, overlap_rate=0) :
-    if frame_size==None :
-        frame_size = data.shape[1] # 全点
+    frame_size = data.shape[1] if frame_size is None else frame_size
     window = signal.get_window(win_type, frame_size) # 窓関数
     slid_size = int(frame_size * (1-overlap_rate)) # スライド長(オーバーラップ長)
     if slid_size <= 0 :
@@ -96,27 +95,36 @@ def stats_features2(data, axis=2) :
                 f = np.concatenate([f, stats_f], axis=axis)
     return np.array(f)
 
-# FFT(複素数のためr**2+i**2)
-# data : ndarray(n_win * n_ch * n_sample)
-def fft(data) :
-    f_fft = fftpack.fft(data, n=data.shape[2], axis=2)
-    return np.abs(f_fft)
+# FFTにより振幅スペクトルを計算
+# data: dim=1~3,(ex. n_win * n_ch * n_sample)
+# min_dim, max_dim: min_dim~max_dim+1次元まで使用(max_dim=None: max_dim) 
+def amp_spectrum(data, min_dim=1, max_dim=None) :
+    f_fft = fft.fft(data, n=data.shape[data.ndim-1], axis=data.ndim-1)
+    if data.ndim==3 :
+        f_fft = f_fft[:,:,min_dim:max_dim+1]
+    elif data.ndim==2 :
+        f_fft = f_fft[:,min_dim:max_dim+1]
+    else :
+        f_fft = f_fft[min_dim:max_dim+1]
+    return np.abs(f_fft) # ex. n_win * n_ch * (max_dim+1-min_dim)
 
-# 多重解像度解析(＊詳細係数のみ、次元0がリスト)
-# data : ndarrry(n_ch*n_sample)
-# wavelet : wavlet
+# 多重解像度解析(＊詳細係数のみ)
+# data : ex. n_ch*n_sample
+# wavelet : wavelet type
 # level : decomposition level
 # mode : 両端の拡張の特性('zero'(default):ゼロ埋め, 'constant':両端を使う, 'symmetric':対称 ...)
-def dwt(data, wavelet='db4', level=4, mode='zero') :
+# cA: Approximation係数を返すか
+def dwt(data, wavelet='db4', level=4, mode='zero', cA=False) :
     coefs = pywt.wavedec(data, wavelet=wavelet, level=level, mode=mode, axis=1)
-    cDs = [np.array(coefs[i]) for i in range(1,len(coefs))] # 詳細係数のみ(粗⇔細)
-    return cDs # n_dec * n_ch * n_feature
+    cA = int(not cA)
+    cDs = [np.array(coefs[i]) for i in range(cA,len(coefs))] # 粗⇔細(cA, cD1,...cDn)
+    return cDs # n_dec * n_ch * n_feat 0次元はリスト
     
-# 論文参考FFT＋統計量(不完全)
+# 論文参考FFT＋統計量
 # using_dim: フーリエ係数使用次元(1~using_dim+1次元)
 # n_stats_win: 統計量まとめて計算するフレーム数
 # n_stats_overlap: 統計量まとめて計算するオーバーラップ率
-def fft2(data, win_type, fft_frame_size, overlap_rate, using_dim, n_stats_win, n_stats_overlap) :
+def fft_stats(data, win_type, fft_frame_size, overlap_rate, using_dim, n_stats_win, n_stats_overlap) :
     # 窓関数(＊ 全区間を対象(full_full_eeglab_pp)として、想起の前後も含めるのも有か)
     win_data = window(data, win_type=win_type, \
                     frame_size=fft_frame_size, overlap_rate=overlap_rate) # n_win * n_ch * frame_size
@@ -124,8 +132,7 @@ def fft2(data, win_type, fft_frame_size, overlap_rate, using_dim, n_stats_win, n
     n_ch = win_data.shape[1]
 
     # FFT
-    f_fft = fft(win_data) # 7,11,15,31,47,63,79, * 3 * 32
-    low_dim_f = f_fft[:,:,1:using_dim+1] # 下からusing_dim次元まで使う 
+    a_s = amp_spectrum(win_data, max_dim=using_dim) # 1~using_dim次元までの振幅スペクトル
     
     # n_win * n_ch * using_dimのフーリエ係数に対して、n_stats_win毎、各電極毎に統計量をとる
     start_win = 0 # 
@@ -140,7 +147,7 @@ def fft2(data, win_type, fft_frame_size, overlap_rate, using_dim, n_stats_win, n
     win_stats_f = []
     while end_win < n_win+1 :
         end_win = start_win + n_stats_win
-        range_win_f = low_dim_f[start_win:end_win, :, :]
+        range_win_f = a_s[start_win:end_win, :, :]
         ch_stats_f = []
         for ch in range(0, n_ch) :
             ch_win_f = range_win_f[:,ch,:]
@@ -164,3 +171,4 @@ def fft2(data, win_type, fft_frame_size, overlap_rate, using_dim, n_stats_win, n
     else :
         features = win_stats_f
     return features
+

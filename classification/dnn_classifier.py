@@ -6,7 +6,7 @@ import torch.nn as nn
 from torch import optim as optimizer
 from torch.utils.data import TensorDataset, DataLoader, Subset
 from sklearn.model_selection import train_test_split
-from _classifier_base import ClassifierBase
+from classifier_base import ClassifierBase
 
 # numpy.ndarray->torch.tensor
 # data_type: numpy dtype
