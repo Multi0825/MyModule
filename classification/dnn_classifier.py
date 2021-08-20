@@ -38,7 +38,7 @@ def split_train_test(data, label, train_size=0.75,
     return train_x, test_x, train_y, test_y
 
 # DNN分類器
-class DNNClassifier(ClassifierBase):
+class DNNClassifier(_ClassifierBase):
     '''
     model: モデルクラス
     model: モデル引数(辞書型)
