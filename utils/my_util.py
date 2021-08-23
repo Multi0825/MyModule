@@ -1,10 +1,20 @@
-# 自作汎用関数群 
+# 自作汎用関数群
+# 2021/07/10 sakai_utilも統合(面倒だったため)
 import os
 import time
 import pickle as pkl
 import numpy as np
 import random
 import matplotlib.pyplot as plt
+import scipy.stats as stats
+from sklearn import preprocessing
+from sklearn.metrics import accuracy_score
+from sklearn.metrics import precision_score
+from sklearn.metrics import recall_score
+from sklearn.metrics import f1_score
+from sklearn.metrics import cohen_kappa_score
+from sklearn.metrics import confusion_matrix
+
 
 # ルートディレクトリ取得
 def get_root_dir() :
@@ -105,7 +115,7 @@ def no_duplicated_randint(a, b, n, seed=None):
         y.append(x.pop(j))
     return y
 
-# データ量を均一化
+# データ量を均一化(少ない方を増加)
 def equalize(a, b, random_seed=None) :
     a = list(a)
     b = list(b)
@@ -134,11 +144,44 @@ def equalize(a, b, random_seed=None) :
     else :
         return less, more
 
+# データの順番をシャッフル
 def shuffle(data, random_seed=None) :
     random.seed(random_seed)
     random.shuffle(data)
     random.seed()
     return data
+
+# データの標準化(mean=0, var=1)
+# data: dim=2
+# axis: 
+def standardize(data, axis=None):
+    return stats.zscore(data,axis=axis)
+
+# データ正規化(min:0, max:1)
+# data: n_ch * n_sample
+def normalize(data, axis=0) :
+    mms = preprocessing.MinMaxScaler() 
+    # fit_transform: データ数*特徴量を特徴量毎(縦)に正規化
+    if axis==1 :
+        nor_data = mms.fit_transform(data.T).T 
+    elif axis==0: 
+        nor_data = mms.fit_transform(data)
+    else :
+        raise ValueError('axis = 0 or 1')
+    return nor_data
+
+# 分類結果評価
+# y_pred: 予測
+# y: 正解
+def eval_classification(y_pred, y) :
+    ac_score  = accuracy_score(y, y_pred) # 正解率
+    precision = precision_score(y, y_pred) # 適合率
+    recall    = recall_score(y, y_pred) # 再現率
+    f1        = f1_score(y, y_pred) # F1値
+    kappa     = cohen_kappa_score(y, y_pred) # κ係数
+    conf      = confusion_matrix(y, y_pred) # 混同行列
+    return ac_score, precision, recall, f1, kappa, conf
+
 ################################## 未完 ##############################################
 # グラフパラメータ
 class FigParam() :
