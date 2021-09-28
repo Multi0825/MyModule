@@ -121,8 +121,8 @@ def equalize(a, b, random_seed=None) :
     b = list(b)
     add_inds = []
     a_is_more = True if len(a) > len(b) else False # 戻り値の順番保持用
-    more = a if len(a) > len(b) else b
-    less = a if len(a) < len(b) else b
+    more = a if a_is_more else b
+    less = b if a_is_more else a
     n_more = len(more)
     n_less = len(less)
     # できる限り重複を減らす
@@ -130,14 +130,15 @@ def equalize(a, b, random_seed=None) :
         # 2倍以上差があるときはn_lessだけ追加
         if n_more >= 2*n_less:
             add_inds.extend(no_duplicated_randint(0, n_less, n_less))
-            n_more = n_more - n_less
+            n_less = 2 * n_less
         # さもなくば差分追加
         else :
-            add_inds.extend(no_duplicated_randint(0, n_less, np.abs(len(a)-len(b)), seed=random_seed))
+            add_inds.extend(no_duplicated_randint(0, n_less, n_more-n_less, seed=random_seed))
             n_more = n_less
     # 追加
     for ai in add_inds :
         less.append(less[ai])
+
     # 入力の順を保持
     if a_is_more :
         return more, less # 戻り値はリスト化される

@@ -53,8 +53,14 @@ class DNNClassifier(_ClassifierBase):
         self.model = model(**model_args) # モデル
         self.device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
         self.model.to(self.device)
-        self.loss_func = loss_func(**loss_args)
-        self.optim = optim(self.model.parameters(), **optim_args)
+        self.loss_func = loss_func(**loss_args) # 損失関数
+        self.optim = optim(self.model.parameters(), **optim_args) # 最適化関数
+        self.train_outputs = None # 訓練出力(Epoch x n_data x n_cls)
+        self.test_outputs = None # テスト出力
+        self.train_accs = None # 訓練精度
+        self.test_accs = None
+        self.train_losses = None
+        self.test_lossed = None
 
     '''
     訓練
@@ -118,11 +124,11 @@ class DNNClassifier(_ClassifierBase):
     テスト
     test_x: テストデータ(torch.tensor)
     test_y: テストラベル(torch.tensor)
+    verbose: 結果(損失と精度)を表示するか(0:出力無し or 1)
     log_fn: 結果をlogに(None: 標準出力)
     '''
     # テスト
-    # 出力を返す用に修正が必要(なんのための)
-    def test(self, test_x, test_y, log_fn=None) :
+    def test(self, test_x, test_y, verbose=1, log_fn=None) :
         # DataLoader
         data_size = test_x.size()[0]
         test_ds = TensorDataset(test_x, test_y)
@@ -130,9 +136,9 @@ class DNNClassifier(_ClassifierBase):
         test_loader = DataLoader(test_ds, batch_size=data_size)
 
         print('Start Test')
-        self.test_outputs = [torch.tensor([], device=self.device)] # 各エポックの出力(上手くできているかの確認用)
-        self.test_losses = [0] # 各エポックの損失
-        self.test_accs = [0] # 各エポックの精度
+        self.test_outputs = [torch.tensor([], device=self.device)] # 出力
+        self.test_losses = [0] # 損失(一応リスト表記であるだけ)
+        self.test_accs = [0] # 精度
         self.model.eval()
         for x, y in test_loader :
             # 勾配計算をしない場合
@@ -147,9 +153,9 @@ class DNNClassifier(_ClassifierBase):
                 _, pred_class = pred_y.max(dim=1)
                 self.test_accs += (pred_class == y).sum()
         self.test_accs[0]= self.test_accs[0].item()/data_size
-        print('Loss: {}'.format(self.test_losses[0]))
-        print('Acc: {}'.format(self.test_accs[0]))
-
+        if verbose :
+            print('Loss: {}'.format(self.test_losses[0]))
+            print('Acc: {}'.format(self.test_accs[0]))
         return self.test_losses[0], self.test_accs[0]
 
     '''
@@ -258,6 +264,31 @@ class DNNClassifier(_ClassifierBase):
     # 要確認 パラメータをロードした後、optim(model.parameters())を再生成する必要はないのか
     def load_model(self, model_fn) :
         self.model.load_state_dict(torch.load(model_fn))
+
+    # 出力がうまくできているか
+    def check_outputs(self, is_test=True, log_fn=None) :
+        # 何を出力するか
+        # Epoch 1
+        #   Eval1
+        #   Eval2
+        # Epoch 2
+        
+        # Eval
+        # 出力をクラスに直して、各クラスの数
+        # 値の最大、最小、平均値
+        if is_test & (self.test_outputs is not None):
+            for e, epoch_outputs in enumerate(self.test_outputs) :
+                print('Epoch {}'.format(e))
+                print(epoch_outputs)
+                # 
+            
+        if (not is_test) & (self.train_outputs is not None) :
+            
+            pass
+        else :
+            print('Outputs is None!')
+            print('Do train, test or train_test!')
+
 
 
 
