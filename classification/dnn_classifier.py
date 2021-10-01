@@ -100,8 +100,8 @@ class DNNClassifier(_ClassifierBase):
                 self.optim.zero_grad()
                 # 損失の計算
                 loss = self.loss_func(pred_y, y)
-                print(loss)
-                print(epoch_loss + loss)
+                print('Tr Los', loss)
+                print('Tr EL+L',epoch_loss + loss)
                 epoch_loss += loss.item()
                 # 勾配の計算(誤差逆伝播) 
                 loss.backward()
@@ -121,9 +121,9 @@ class DNNClassifier(_ClassifierBase):
             if e%keep_losses == 0 :
                 self.train_losses = torch.cat((self.train_losses, torch.tensor([epoch_loss])), dim=0)
             if e%keep_accs==0 :
-                print(epoch_hit/train_data_size)
+                print('E/size',epoch_hit/train_data_size)
                 epoch_acc = epoch_hit.item()/train_data_size
-                print(epoch_acc)
+                print('Ea', epoch_acc)
                 self.train_accs = torch.cat((self.train_accs, torch.tensor([epoch_acc])), dim=0)
 
         return self.train_losses, self.train_accs
