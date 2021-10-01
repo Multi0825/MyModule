@@ -202,7 +202,6 @@ class DNNClassifier(_ClassifierBase):
         for e in range(1, epoch+1):
             print('Epoch: {}'.format(e))
             # 訓練
-            print('Training')
             self.model.train()
             epoch_outputs = torch.tensor([], device=self.device)
             epoch_loss = 0
@@ -225,6 +224,7 @@ class DNNClassifier(_ClassifierBase):
                 epoch_hit += (pred_class == y).sum().item()
             # 結果
             if e%verbose==0 :
+                print('Training')
                 print('Epoch Loss: {}'.format(epoch_loss))
                 print('Epoch Acc: {}'.format(epoch_hit/train_data_size))
             # 結果保存
@@ -237,7 +237,6 @@ class DNNClassifier(_ClassifierBase):
                 self.train_accs = torch.cat((self.train_accs, torch.tensor([epoch_acc])), dim=0)
             
             # テスト
-            print('Test')
             self.model.eval()
             epoch_outputs = torch.tensor([], device=self.device)
             epoch_loss = 0
@@ -256,8 +255,9 @@ class DNNClassifier(_ClassifierBase):
                     epoch_hit += (pred_class == y).sum().item()
             # 結果
             if e%verbose==0 :
+                print('Test')
                 print('Epoch Loss: {}'.format(epoch_loss))
-                print('Epoch Acc: {}'.format(epoch_hit/test_data_size))
+                print('Epoch Acc: {}\n'.format(epoch_hit/test_data_size))
             # 結果保存
             if e%keep_outputs == 0 :
                 self.test_outputs = torch.cat((self.test_outputs,epoch_outputs.unsqueeze(dim=0)), dim=0)
@@ -266,7 +266,7 @@ class DNNClassifier(_ClassifierBase):
             if e%keep_accs==0:
                 epoch_acc = epoch_hit/test_data_size
                 self.test_accs = torch.cat((self.test_accs, torch.tensor([epoch_acc])), dim=0)
-            print()   
+
         return self.train_losses, self.train_accs, \
                self.test_losses, self.test_accs
 
