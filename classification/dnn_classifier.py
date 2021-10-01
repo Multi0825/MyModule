@@ -77,15 +77,15 @@ class DNNClassifier(_ClassifierBase):
     def train(self, train_x, train_y, epoch, batch_size, 
               keep_outputs=1, keep_losses=1, keep_accs=1, verbose=1, log_fn=None) :
         # DataLoader
-        data_size = train_x.size()[0]
+        train_data_size = train_x.size()[0]
         train_ds = TensorDataset(train_x, train_y)
         # shuffleはシード値指定できないから無し or 手動
         train_loader = DataLoader(train_ds, batch_size=batch_size)
 
         print('Start Training')
-        self.train_outputs = [] # 各エポックの出力(上手くできているかの確認用)
-        self.train_losses = [] # 各エポックの損失
-        self.train_accs = [] # 各エポックの精度
+        self.train_outputs = torch.tensor([], device=self.device) # 各エポックの出力(上手くできているかの確認用)
+        self.train_losses = torch.tensor([]) # 各エポックの損失
+        self.train_accs = torch.tensor([]) # 各エポックの精度
         self.model.train()
         for e in range(1, epoch+1):
             print('Epoch: {}'.format(e))
@@ -108,21 +108,20 @@ class DNNClassifier(_ClassifierBase):
                 # 正解数
                 _, pred_class = pred_y.max(dim=1)
                 epoch_hit += (pred_class == y).sum()
+            
             # 結果
             if e%verbose==0 :
                 print('Epoch Loss: {}'.format(epoch_loss))
-                print('Epoch Acc: {}'.format(epoch_hit.item()/data_size))
-            # 結果の保存
+                print('Epoch Acc: {}'.format(epoch_hit.item()/train_data_size))
+            # 結果保存
             if e%keep_outputs == 0 :
-                self.train_outputs.append(epoch_outputs)
+                self.train_outputs = torch.cat((self.train_outputs,epoch_outputs.unsqueeze(dim=0)), dim=0)
             if e%keep_losses == 0 :
-                self.train_losses.append(epoch_loss)
-            if e%keep_accs==0:
-                self.train_accs.append(epoch_hit.item()/data_size)
-        # tensorに変換
-        self.train_losses = torch.tensor(self.train_losses)
-        self.train_accs = torch.tensor(self.train_accs)
-        self.train_outputs = torch.tensor(self.train_outputs)
+                self.train_losses = torch.cat((self.train_losses, epoch_loss), dim=0)
+            if e%keep_accs==0 :
+                epoch_acc = epoch_hit.item()/train_data_size
+                self.train_outputs = torch.cat((self.train_accs, epoch_acc), dim=0)
+
         return self.train_losses, self.train_accs
     
 
@@ -136,40 +135,36 @@ class DNNClassifier(_ClassifierBase):
     # テスト
     def test(self, test_x, test_y, verbose=1, log_fn=None) :
         # DataLoader
-        data_size = test_x.size()[0]
+        test_data_size = test_x.size()[0]
         test_ds = TensorDataset(test_x, test_y)
         # shuffleはシード値指定できないから無し or 手動
-        test_loader = DataLoader(test_ds, batch_size=data_size)
+        test_loader = DataLoader(test_ds, batch_size=test_data_size)
 
         print('Start Test')
-        self.test_outputs = [torch.tensor([], device=self.device)] # 出力
-        self.test_losses = [0] # 損失(一応リスト表記であるだけ)
-        self.test_accs = [0] # 精度
+        self.test_outputs = torch.tensor([], device=self.device) # 出力
+        self.test_losses = torch.tensor([0]) # 損失(返り血は一次元に)
+        self.test_accs = torch.tensor([0])# 精度
         self.model.eval()
         for x, y in test_loader :
             # 勾配計算をしない場合
             with torch.no_grad() :
                 # 出力
                 pred_y = self.model(x)
-                self.test_outputs[0] = torch.cat((self.test_outputs[0],pred_y), dim=0)
+                self.test_outputs[0] = torch.cat((self.test_outputs, pred_y), dim=0)
                 # 損失の計算
                 loss = self.loss_func(pred_y, y) 
-                self.test_losses[0] += loss.item()
+                self.test_losses[0] = loss.item()
                 # 正解数
                 _, pred_class = pred_y.max(dim=1)
-                self.test_accs += (pred_class == y).sum()
-        self.test_accs[0]= self.test_accs[0].item()/data_size
+                hit = (pred_class == y).sum()
+        self.test_accs[0] = hit/test_data_size
         
-        # tensorに変換
-        self.test_losses = torch.tensor(self.test_losses)
-        self.test_accs = torch.tensor(self.test_accs)
-        self.test_outputs = torch.tensor(self.test_outputs)
         # 出力
         if verbose :
-            print('Loss: {}'.format(self.test_losses[0]))
-            print('Acc: {}'.format(self.test_accs[0]))
+            print('Loss: {}'.format(self.test_losses[0].item()))
+            print('Acc: {}'.format(self.test_accs[0].item()))
         
-        return self.test_losses[0], self.test_accs[0]
+        return self.test_losses[0].item(), self.test_accs[0].item()
 
     '''
     エポック毎に訓練+テスト
@@ -197,12 +192,12 @@ class DNNClassifier(_ClassifierBase):
         test_loader = DataLoader(test_ds, batch_size=test_data_size)
 
         print('Start Training & Test')
-        self.train_outputs = [] # 各エポックの出力(上手くできているかの確認用)
-        self.train_losses = [] # 各エポックの損失
-        self.train_accs = [] # 各エポックの精度
-        self.test_outputs = [] # 各エポックの出力(上手くできているかの確認用)
-        self.test_losses = [] # 各エポックの損失
-        self.test_accs = [] # 各エポックの精度
+        self.train_outputs = torch.tensor([], device=self.device) # 各エポックの出力(上手くできているかの確認用)
+        self.train_losses = torch.tensor([]) # 各エポックの損失
+        self.train_accs = torch.tensor([]) # 各エポックの精度
+        self.test_outputs = torch.tensor([], device=self.device) # 各エポックの出力(上手くできているかの確認用)
+        self.test_losses = torch.tensor([]) # 各エポックの損失
+        self.test_accs = torch.tensor([]) # 各エポックの精度
         
         for e in range(1, epoch+1):
             print('Epoch: {}'.format(e))
@@ -234,11 +229,12 @@ class DNNClassifier(_ClassifierBase):
                 print('Epoch Acc: {}'.format(epoch_hit.item()/train_data_size))
             # 結果保存
             if e%keep_outputs == 0 :
-                self.train_outputs.append(epoch_outputs)
+                self.train_outputs = torch.cat((self.train_outputs,epoch_outputs.unsqueeze(dim=0)), dim=0)
             if e%keep_losses == 0 :
-                self.train_losses.append(epoch_loss)
-            if e%keep_accs==0:
-                self.train_accs.append(epoch_hit.item()/train_data_size)
+                self.train_losses = torch.cat((self.train_losses, epoch_loss), dim=0)
+            if e%keep_accs==0 :
+                epoch_acc = epoch_hit.item()/train_data_size
+                self.train_outputs = torch.cat((self.train_accs, epoch_acc), dim=0)
             
             # テスト
             print('Test')
@@ -264,20 +260,13 @@ class DNNClassifier(_ClassifierBase):
                 print('Epoch Acc: {}'.format(epoch_hit.item()/test_data_size))
             # 結果保存
             if e%keep_outputs == 0 :
-                self.test_outputs.append(epoch_outputs)
+                self.test_outputs = torch.cat((self.test_outputs,epoch_outputs.unsqueeze(dim=0)), dim=0)
             if e%keep_losses == 0 :
-                self.test_losses.append(epoch_loss)
+                self.test_losses = torch.cat((self.test_losses, epoch_loss), dim=0)
             if e%keep_accs==0:
-                self.test_accs.append(epoch_hit.item()/test_data_size)
-
-        # tensorに変換
-        self.train_losses = torch.tensor(self.train_losses)
-        self.train_accs = torch.tensor(self.train_accs)
-        self.train_outputs = torch.tensor(self.train_outputs)
-        self.test_losses = torch.tensor(self.test_losses)
-        self.test_accs = torch.tensor(self.test_accs)
-        self.test_outputs = torch.tensor(self.test_outputs)
-
+                epoch_acc = epoch_hit.item()/test_data_size
+                self.test_accs = torch.cat((self.test_accs, epoch_acc), dim=0)
+                
         return self.train_losses, self.train_accs, \
                self.test_losses, self.test_accs
 
