@@ -165,7 +165,7 @@ class DNNClassifier(_ClassifierBase):
         # 出力
         if verbose :
             print('Loss: {}'.format(self.test_losses[0].item()))
-            print('Acc: {}\n'.format(self.test_accs[0]))
+            print('Acc: {}\n'.format(self.test_accs[0].item()))
         
         return self.test_losses, self.test_accs
 
@@ -225,18 +225,18 @@ class DNNClassifier(_ClassifierBase):
                 self.optim.step()
                 # 正解数
                 _, pred_class = pred_y.max(dim=1)
-                epoch_hit += (pred_class == y).sum()
+                epoch_hit += (pred_class == y).sum().item()
             # 結果
             if e%verbose==0 :
                 print('Epoch Loss: {}'.format(epoch_loss))
-                print('Epoch Acc: {}\n'.format(epoch_hit.item()/train_data_size))
+                print('Epoch Acc: {}\n'.format(epoch_hit/train_data_size))
             # 結果保存
             if e%keep_outputs == 0 :
                 self.train_outputs = torch.cat((self.train_outputs,epoch_outputs.unsqueeze(dim=0)), dim=0)
             if e%keep_losses == 0 :
                 self.train_losses = torch.cat((self.train_losses, torch.tensor([epoch_loss])), dim=0)
             if e%keep_accs==0 :
-                epoch_acc = epoch_hit.item()/train_data_size
+                epoch_acc = epoch_hit/train_data_size
                 self.train_accs = torch.cat((self.train_accs, torch.tensor([epoch_acc])), dim=0)
             
             # テスト
@@ -256,7 +256,7 @@ class DNNClassifier(_ClassifierBase):
                     epoch_loss += loss.item()
                     # 正解数
                     _, pred_class = pred_y.max(dim=1)
-                    epoch_hit += (pred_class == y).sum()
+                    epoch_hit += (pred_class == y).sum().item()
             # 結果
             if e%verbose==0 :
                 print('Epoch Loss: {}'.format(epoch_loss))
@@ -267,7 +267,7 @@ class DNNClassifier(_ClassifierBase):
             if e%keep_losses == 0 :
                 self.test_losses = torch.cat((self.test_losses, torch.tensor([epoch_loss])), dim=0)
             if e%keep_accs==0:
-                epoch_acc = epoch_hit.item()/test_data_size
+                epoch_acc = epoch_hit/test_data_size
                 self.test_accs = torch.cat((self.test_accs, torch.tensor([epoch_acc])), dim=0)
                 
         return self.train_losses, self.train_accs, \
