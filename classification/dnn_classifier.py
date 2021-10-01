@@ -260,7 +260,7 @@ class DNNClassifier(_ClassifierBase):
             # 結果
             if e%verbose==0 :
                 print('Epoch Loss: {}'.format(epoch_loss))
-                print('Epoch Acc: {}'.format(epoch_hit.item()/test_data_size))
+                print('Epoch Acc: {}'.format(epoch_hit/test_data_size))
             # 結果保存
             if e%keep_outputs == 0 :
                 self.test_outputs = torch.cat((self.test_outputs,epoch_outputs.unsqueeze(dim=0)), dim=0)
