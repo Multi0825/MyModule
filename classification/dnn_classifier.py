@@ -100,7 +100,8 @@ class DNNClassifier(_ClassifierBase):
                 self.optim.zero_grad()
                 # 損失の計算
                 loss = self.loss_func(pred_y, y)
-                print(loss) 
+                print(loss)
+                print(epoch_loss + loss)
                 epoch_loss += loss.item()
                 # 勾配の計算(誤差逆伝播) 
                 loss.backward()
@@ -113,7 +114,7 @@ class DNNClassifier(_ClassifierBase):
             # 結果
             if e%verbose==0 :
                 print('Epoch Loss: {}'.format(epoch_loss))
-                print('Epoch Acc: {}'.format(epoch_hit.item()/train_data_size))
+                print('Epoch Acc: {}\n'.format(epoch_hit.item()/train_data_size))
             # 結果保存
             if e%keep_outputs == 0 :
                 self.train_outputs = torch.cat((self.train_outputs,epoch_outputs.unsqueeze(dim=0)), dim=0)
@@ -160,12 +161,13 @@ class DNNClassifier(_ClassifierBase):
                 # 正解数
                 _, pred_class = pred_y.max(dim=1)
                 hit = (pred_class == y).sum()
+        print(hit)
         self.test_accs[0] = hit/test_data_size
         
         # 出力
         if verbose :
             print('Loss: {}'.format(self.test_losses[0].item()))
-            print('Acc: {}'.format(self.test_accs[0].item()))
+            print('Acc: {}\n'.format(self.test_accs[0].item()))
         
         return self.test_losses[0].item(), self.test_accs[0].item()
 
@@ -229,7 +231,7 @@ class DNNClassifier(_ClassifierBase):
             # 結果
             if e%verbose==0 :
                 print('Epoch Loss: {}'.format(epoch_loss))
-                print('Epoch Acc: {}'.format(epoch_hit.item()/train_data_size))
+                print('Epoch Acc: {}\n'.format(epoch_hit.item()/train_data_size))
             # 結果保存
             if e%keep_outputs == 0 :
                 self.train_outputs = torch.cat((self.train_outputs,epoch_outputs.unsqueeze(dim=0)), dim=0)
