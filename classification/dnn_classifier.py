@@ -142,8 +142,8 @@ class DNNClassifier(_ClassifierBase):
 
         print('Start Test')
         self.test_outputs = torch.tensor([], device=self.device) # 出力
-        self.test_losses = torch.tensor([0]) # 損失(返り血は一次元に)
-        self.test_accs = torch.tensor([0])# 精度
+        self.test_losses = torch.tensor([0.]) # 損失(返り血は一次元に)
+        self.test_accs = torch.tensor([0.])# 精度
         self.model.eval()
         for x, y in test_loader :
             # 勾配計算をしない場合
