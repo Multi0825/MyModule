@@ -68,7 +68,7 @@ class DNNClassifier(_ClassifierBase):
     train_y: 訓練ラベル(torch.tensor)
     epoch: エポック数
     batch_size: バッチサイズ
-    keep_outputs: 出力を何エポックごとに保持するか(データ量)
+    keep_outputs: 出力を何エポックごとに保持するか(データ量を減らす)
     keep_losses: 損失を何エポックごとに保持するか
     keep_accs: 精度を何エポックごとに保持するか
     verbose: 何エポックごとに結果(損失と精度)を表示するか(0:出力無し)
@@ -179,7 +179,7 @@ class DNNClassifier(_ClassifierBase):
     test_y: テストラベル(torch.tensor)
     epoch: エポック数
     batch_size: バッチサイズ
-    keep_outputs: 出力を何エポックごとに保持するか(データ量)
+    keep_outputs: 出力を何エポックごとに保持するか(データ量を減らす)
     keep_losses: 損失を何エポックごとに保持するか
     keep_accs: 精度を何エポックごとに保持するか
     verbose: 何エポックごとに結果(損失と精度)を表示するか(0:出力無し)
