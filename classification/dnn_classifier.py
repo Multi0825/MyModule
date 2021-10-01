@@ -226,7 +226,7 @@ class DNNClassifier(_ClassifierBase):
             # 結果
             if e%verbose==0 :
                 print('Epoch Loss: {}'.format(epoch_loss))
-                print('Epoch Acc: {}\n'.format(epoch_hit/train_data_size))
+                print('Epoch Acc: {}'.format(epoch_hit/train_data_size))
             # 結果保存
             if e%keep_outputs == 0 :
                 self.train_outputs = torch.cat((self.train_outputs,epoch_outputs.unsqueeze(dim=0)), dim=0)
@@ -266,7 +266,7 @@ class DNNClassifier(_ClassifierBase):
             if e%keep_accs==0:
                 epoch_acc = epoch_hit/test_data_size
                 self.test_accs = torch.cat((self.test_accs, torch.tensor([epoch_acc])), dim=0)
-                
+            print()   
         return self.train_losses, self.train_accs, \
                self.test_losses, self.test_accs
 
