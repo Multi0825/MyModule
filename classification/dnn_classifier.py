@@ -119,9 +119,7 @@ class DNNClassifier(_ClassifierBase):
             if e%keep_losses == 0 :
                 self.train_losses = torch.cat((self.train_losses, torch.tensor([epoch_loss])), dim=0)
             if e%keep_accs==0 :
-                print('E/size',epoch_hit/train_data_size)
                 epoch_acc = epoch_hit/train_data_size
-                print('Ea', epoch_acc)
                 self.train_accs = torch.cat((self.train_accs, torch.tensor([epoch_acc])), dim=0)
 
         return self.train_losses, self.train_accs
@@ -155,19 +153,21 @@ class DNNClassifier(_ClassifierBase):
                 self.test_outputs = torch.cat((self.test_outputs, pred_y), dim=0)
                 # 損失の計算
                 loss = self.loss_func(pred_y, y) 
+                print(loss)
                 self.test_losses[0] = loss.item()
                 # 正解数
                 _, pred_class = pred_y.max(dim=1)
-                hit = (pred_class == y).sum()
+                hit = (pred_class == y).sum().item()
         print(hit)
+        print(hit/test_data_size)
         self.test_accs[0] = hit/test_data_size
         
         # 出力
         if verbose :
             print('Loss: {}'.format(self.test_losses[0].item()))
-            print('Acc: {}\n'.format(self.test_accs[0].item()))
+            print('Acc: {}\n'.format(self.test_accs[0]))
         
-        return self.test_losses[0].item(), self.test_accs[0].item()
+        return self.test_losses, self.test_accs
 
     '''
     エポック毎に訓練+テスト
