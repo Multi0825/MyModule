@@ -122,7 +122,7 @@ class DNNClassifier(_ClassifierBase):
         # tensorに変換
         self.train_losses = torch.tensor(self.train_losses)
         self.train_accs = torch.tensor(self.train_accs)
-
+        self.train_outputs = torch.tensor(self.train_outputs)
         return self.train_losses, self.train_accs
     
 
@@ -163,7 +163,7 @@ class DNNClassifier(_ClassifierBase):
         # tensorに変換
         self.test_losses = torch.tensor(self.test_losses)
         self.test_accs = torch.tensor(self.test_accs)
-        
+        self.test_outputs = torch.tensor(self.test_outputs)
         # 出力
         if verbose :
             print('Loss: {}'.format(self.test_losses[0]))
@@ -273,8 +273,10 @@ class DNNClassifier(_ClassifierBase):
         # tensorに変換
         self.train_losses = torch.tensor(self.train_losses)
         self.train_accs = torch.tensor(self.train_accs)
+        self.train_outputs = torch.tensor(self.train_outputs)
         self.test_losses = torch.tensor(self.test_losses)
         self.test_accs = torch.tensor(self.test_accs)
+        self.test_outputs = torch.tensor(self.test_outputs)
 
         return self.train_losses, self.train_accs, \
                self.test_losses, self.test_accs
