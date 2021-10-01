@@ -117,12 +117,12 @@ class DNNClassifier(_ClassifierBase):
             if e%keep_outputs == 0 :
                 self.train_outputs = torch.cat((self.train_outputs,epoch_outputs.unsqueeze(dim=0)), dim=0)
             if e%keep_losses == 0 :
-                self.train_losses = torch.cat((self.train_losses, epoch_loss), dim=0)
+                self.train_losses = torch.cat((self.train_losses, epoch_loss.unsqueeze(dim=0)), dim=0)
             if e%keep_accs==0 :
                 print('E/size',epoch_hit/train_data_size)
                 epoch_acc = epoch_hit/train_data_size
                 print('Ea', epoch_acc)
-                self.train_accs = torch.cat((self.train_accs, epoch_acc), dim=0)
+                self.train_accs = torch.cat((self.train_accs, epoch_acc.unsqueeze(dim=0)), dim=0)
 
         return self.train_losses, self.train_accs
     
