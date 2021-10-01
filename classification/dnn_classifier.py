@@ -153,13 +153,10 @@ class DNNClassifier(_ClassifierBase):
                 self.test_outputs = torch.cat((self.test_outputs, pred_y), dim=0)
                 # 損失の計算
                 loss = self.loss_func(pred_y, y) 
-                print(loss)
                 self.test_losses[0] = loss.item()
                 # 正解数
                 _, pred_class = pred_y.max(dim=1)
                 hit = (pred_class == y).sum().item()
-        print(hit)
-        print(hit/test_data_size)
         self.test_accs[0] = hit/test_data_size
         
         # 出力
