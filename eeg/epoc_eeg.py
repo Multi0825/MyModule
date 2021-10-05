@@ -136,7 +136,6 @@ def extract_section(csv_fn, epoch_range, tmin, tmax, out_csv_fn) :
 # Emotiv Epoc出力データを読み込み用クラス
 # 変更予定(途中)
 # ・Stageに対応(読込まではできる)
-
 class EpocEEG():
     # csv_fn : EmotivEpocから出力されたCSV(列: Time:[sfreq]Hz, Epoch, CH1,...CH14, (Label)でなければならない)
     # labels_fn : 各エポックがなんのイベントに対応しているかを示すファイル(行番号=エポックで1行1ラベル)
@@ -186,10 +185,7 @@ class EpocEEG():
                 for e in range(self.n_epoch) :
                     self.stage_starts[stg].append(df[(df['Stage']==stg) & (df['Epoch']==e)].index[0])
 
-
-
-    
-    # データ取得
+    # データ取得(2次元)
     # target_epoch : 対象エポック(None:全範囲)
     # target_chs : 対象電極(None:全範囲)
     def get_data(self, target_epoch=None, target_chs=None):
@@ -202,6 +198,21 @@ class EpocEEG():
             data, _ = self.raw[target_chs,int(self.epoch_ranges[target_epoch,0]):int(self.epoch_ranges[target_epoch,1])+1]
         return data
 
+    '''
+    データ取得
+    3次元(target_epochs(labels) x target_chs x n_sample)に加工ver.
+    target_epochs: 対象エポック(None: 全エポック)
+    target_labels: 対象ラベル(target_epochs=Noneのとき)
+    target_chs: 対象電極(None:全範囲)
+    '''
+    def get_split_data(self, target_epochs=None, target_labels=None, target_chs=None) :
+        if target_epochs is None :
+            if target_labels is None :
+                target_epochs = [e for e in range(self.n_epoch) if self.epoch_labels[e] in target_labels]
+            else :
+                target_epochs = [e for e in range(self.n_epoch)]
+        data = np.array([self.get_data(target_epoch=e, target_chs=target_chs) for e in target_epochs])
+        return data
 
     # データ更新
     # data : 対象データ
@@ -215,7 +226,7 @@ class EpocEEG():
                 self.raw[:,int(self.epoch_ranges[target_epoch,0]):int(self.epoch_ranges[target_epoch,1])+1] = data # スライスでは末尾+1
 
 
-    # プロット ***n_channel != target_ch -> n_channels:何番目まで表示するか
+    # プロット ***n_chs != target_ch -> n_chs:何番目まで表示するか
     # target_chs : 対象チャンネル(複数可、None:全範囲)
     # target_epoch : 対象エポック(None:全範囲)
     # tmin, tmax : ・target_epoch=Noneの時
