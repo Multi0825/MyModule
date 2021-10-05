@@ -8,15 +8,28 @@ from torch.utils.data import TensorDataset, DataLoader, Subset
 from sklearn.model_selection import train_test_split
 from .classifier_base import _ClassifierBase
 
-# numpy.ndarray->torch.tensor
-# data_type: numpy dtype
-#            ex. torch.double=np.float64, torch.float=np.float32, torch.long=np.int64, 
-# device: cpu or cuda:0(auto: cpu if cuda:0 is unavailable)
+'''
+numpy.ndarray->torch.tensor
+data: ndarray
+data_type: numpy dtype
+           ex. torch.double=np.float64, torch.float=np.float32, torch.long=np.int64, 
+device: cpu or cuda:0(auto: cpu if cuda:0 is unavailable)
+'''
 def np2torch(data, data_type=np.float32, device='auto') :
     if device=='auto' :
         device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
     data = torch.from_numpy(data.astype(data_type)).clone().to(device)
     return data
+    
+'''
+torch.tensor->numpy.ndarray
+data: torch.tensor
+data_type: numpy dtype
+'''
+def torch2np(data, data_type=np.float32):
+    data = data.to('cpu').detach().numpy().copy().astype(data_type)
+    return data
+
 '''
 訓練、テスト分割(+ torch.tensorへの変換)
 data, label: データ、ラベル(サンプル数は同じ)
