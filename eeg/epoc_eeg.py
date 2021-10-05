@@ -208,9 +208,9 @@ class EpocEEG():
     def get_split_data(self, target_epochs=None, target_labels=None, target_chs=None) :
         if target_epochs is None :
             if target_labels is None :
-                target_epochs = [e for e in range(self.n_epoch) if self.epoch_labels[e] in target_labels]
-            else :
                 target_epochs = [e for e in range(self.n_epoch)]
+            else :
+                target_epochs = [e for e in range(self.n_epoch) if self.epoch_labels[e] in target_labels]
         data = np.array([self.get_data(target_epoch=e, target_chs=target_chs) for e in target_epochs])
         return data
 
