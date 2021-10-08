@@ -60,7 +60,35 @@ class KaraoneEEG():
         else : 
             data, _ = self.raw[target_chs,int(self.epoch_ranges[target_epoch,0]):int(self.epoch_ranges[target_epoch,1])+1]
         return data
+    
+    '''
+    データ取得
+    3次元(target_epochs(labels) x target_chs x n_sample)に加工ver.
+    target_epochs: 対象エポック(None: 全エポック)
+    target_labels: 対象ラベル(target_epochs=Noneのとき)
+    target_chs: 対象電極(None:全範囲)
+    '''
+    def get_split_data(self, target_epochs=None, target_labels=None, target_chs=None) :
+        if target_epochs is None :
+            if target_labels is None :
+                target_epochs = [e for e in range(self.n_epoch)]
+            else :
+                target_epochs = [e for e in range(self.n_epoch) if self.epoch_labels[e] in target_labels]
+        data = np.array([self.get_data(target_epoch=e, target_chs=target_chs) for e in target_epochs])
+        return data
 
+    # データ取得
+    # target_epoch : 対象エポック(None:全範囲)
+    # target_chs : 対象電極(None:全範囲)
+    def get_data(self, target_epoch=None, target_chs=None):
+        if target_chs is None :
+            target_chs = self.ch_names
+        # エポック指定
+        if target_epoch is None:
+            data, _ = self.raw[target_chs,:] # n_ch*n_sample
+        else : 
+            data, _ = self.raw[target_chs,int(self.epoch_ranges[target_epoch,0]):int(self.epoch_ranges[target_epoch,1])+1]
+        return data
 
     # データ更新
     # data : 対象データ
@@ -246,42 +274,6 @@ class KaraoneEEG():
             print(labels_fn+' has been created')
         
 
-
-class Preprocesser() :
-    def __init__(self) :
-        pass
-
-    #フィルタリング
-    # epoc_eeg : EpocEEGInstance
-    # sfreq : サンプリング周波数
-    # l_freq, h_freq : フィルタリング周波数
-    #                  l_freq < h_freq: band-pass filter
-    #                  l_freq > h_freq: band-stop filter
-    #                  l_freq is not None and h_freq is None: high-pass filter
-    #                  l_freq is None and h_freq is not None: low-pass filter
-    def filter(self, epoc_eeg, l_freq, h_freq) :
-        epoc_eeg.raw.filter(l_freq, h_freq)
-        
-    
-    # 基準値減算したデータ取得(各エポック毎、各電極の平均値をオリジナルから引く)
-    def remove_baseline(self, epoc_eeg) :
-        new_data = np.empty((epoc_eeg.n_ch,0))
-        for e in range(epoc_eeg.n_epoch) :
-            epoch_data = epoc_eeg.get_data(target_epoch=e)
-            epoch_means = np.mean(epoch_data, axis=1) # エポックの各チャンネル毎の平均値
-            for ch in range(epoc_eeg.n_ch) :
-                epoch_data[ch] = epoch_data[ch] - epoch_means[ch]    
-            new_data = np.concatenate([new_data, epoch_data], axis=1)
-        epoc_eeg.set_data(new_data)
-        
-    # ICAによるアーティファクト除去
-    def remove_artifacts(self, epoc_eeg) :
-        # ICA
-        ica = mne.preprocessing.ICA(n_components=epoc_eeg.n_ch, n_pca_components=epoc_eeg.n_ch, max_iter=100)
-        ica.fit(epoc_eeg.raw)
-        # アーティファクト除去
-        ica.detect_artifacts(epoc_eeg.raw)
-        ica.apply(epoc_eeg.raw)
         
 
 
