@@ -40,7 +40,7 @@ class KaraoneEEG():
             self.epoch_ranges[e,0] = df[df['Epoch']==e].index[0]
             self.epoch_ranges[e,1] = df[df['Epoch']==e].index[-1] 
         
-        # ステ-ジ
+        # ステージ
         self.stages = list(np.unique(df['Stage'].values))
         self.stage_starts = dict() # ステージの開始点stage x epoch(全てのステージは連続を前提、次のステージの開始点-1が終了点)
         for stg in self.stages :
