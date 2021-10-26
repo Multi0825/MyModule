@@ -181,7 +181,7 @@ class DNNClassifier(_ClassifierBase):
             print('Acc: {}\n'.format(self.test_accs[0].item()))
         
         if to_np :
-            return torch2np(self.train_losses), torch2np(self.train_accs)
+            return torch2np(self.test_losses), torch2np(self.test_accs)
         else :
             return self.test_losses, self.test_accs
 
