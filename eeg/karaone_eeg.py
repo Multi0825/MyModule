@@ -77,19 +77,6 @@ class KaraoneEEG():
         data = np.array([self.get_data(target_epoch=e, target_chs=target_chs) for e in target_epochs])
         return data
 
-    # データ取得
-    # target_epoch : 対象エポック(None:全範囲)
-    # target_chs : 対象電極(None:全範囲)
-    def get_data(self, target_epoch=None, target_chs=None):
-        if target_chs is None :
-            target_chs = self.ch_names
-        # エポック指定
-        if target_epoch is None:
-            data, _ = self.raw[target_chs,:] # n_ch*n_sample
-        else : 
-            data, _ = self.raw[target_chs,int(self.epoch_ranges[target_epoch,0]):int(self.epoch_ranges[target_epoch,1])+1]
-        return data
-
     # データ更新
     # data : 対象データ
     # target_epoch : 指定エポック(None:全範囲)
