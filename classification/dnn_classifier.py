@@ -59,19 +59,26 @@ class DNNClassifier(_ClassifierBase):
     loss_args: 損失関数引数(辞書型)
     optim: 最適化関数
     optim_args: 最適化関数引数(辞書型、model.parameters()以外)
+    init_seed: モデルのパラメータの初期化のシード
     '''
     def __init__(self, model, model_args={}, 
                  loss_func=nn.CrossEntropyLoss, loss_args={}, 
-                 optim=optimizer.Adam, optim_args={}):
+                 optim=optimizer.Adam, optim_args={}, init_seed=None) -> None:
+        if init_seed is not None :
+            torch.manual_seed(init_seed)
         self.model = model(**model_args) # モデル
         self.device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
         self.model.to(self.device)
         self.loss_func = loss_func(**loss_args) # 損失関数
         self.optim = optim(self.model.parameters(), **optim_args) # 最適化関数
+        # 訓練
         self.train_outputs = torch.tensor([], device=self.device) # 各エポックの出力(Epoch x n_data x n_cls)
+        self.train_labels = torch.tensor([], device=self.device) # 各エポックの出力に対応するラベル(Epoch x n_data)
         self.train_losses = torch.tensor([]) # 各エポックの損失
         self.train_accs = torch.tensor([]) # 各エポックの精度
+        # テスト
         self.test_outputs = torch.tensor([], device=self.device) # 各エポックの出力
+        self.test_labels = torch.tensor([], device=self.device) # 各エポックの出力に対応するラベル
         self.test_losses = torch.tensor([]) # 各エポックの損失
         self.test_accs = torch.tensor([]) # 各エポックの精度
         
@@ -103,6 +110,7 @@ class DNNClassifier(_ClassifierBase):
         for e in range(1, epoch+1):
             print('Epoch: {}'.format(e))
             epoch_outputs = torch.tensor([], device=self.device)
+            epoch_labels = torch.tensor([], device=self.device)
             epoch_loss = 0
             epoch_hit = 0
             for x, y in train_loader :
@@ -111,7 +119,9 @@ class DNNClassifier(_ClassifierBase):
                 # 追加処理
                 if extra_func is not None :
                     pred_y = extra_func(pred_y)
+                # 出力、ラベル保存処理
                 epoch_outputs = torch.cat((epoch_outputs, pred_y),dim=0)
+                epoch_labels = torch.cat((epoch_labels, y), dim=0)
                 # 勾配の初期化
                 self.optim.zero_grad()
                 # 損失の計算
@@ -132,6 +142,7 @@ class DNNClassifier(_ClassifierBase):
             # 結果保存
             if e%keep_outputs == 0 :
                 self.train_outputs = torch.cat((self.train_outputs,epoch_outputs.unsqueeze(dim=0)), dim=0)
+                self.train_labels = torch.cat((self.train_labels, epoch_labels.unsqueeze(dim=0)), dim=0)
             if e%keep_losses == 0 :
                 self.train_losses = torch.cat((self.train_losses, torch.tensor([epoch_loss])), dim=0)
             if e%keep_accs==0 :
@@ -167,6 +178,7 @@ class DNNClassifier(_ClassifierBase):
         print('Start Test')
         self.model.eval()
         epoch_outputs = torch.tensor([], device=self.device)
+        epoch_labels = torch.tensor([], device=self.device)
         epoch_loss = 0
         epoch_hit = 0
         for x, y in test_loader :
@@ -177,6 +189,7 @@ class DNNClassifier(_ClassifierBase):
                 if extra_func is not None :
                     pred_y = extra_func(pred_y)
                 epoch_outputs = torch.cat((epoch_outputs, pred_y),dim=0)
+                epoch_labels = torch.cat((epoch_labels, y), dim=0)
                 # 損失の計算
                 loss = self.loss_func(pred_y, y) 
                 self.test_losses[0] = loss.item()
@@ -192,6 +205,7 @@ class DNNClassifier(_ClassifierBase):
         # 結果保存
         if keep_outputs :
             self.test_outputs = torch.cat((self.test_outputs,epoch_outputs.unsqueeze(dim=0)), dim=0)
+            self.test_labels = torch.cat((self.train_labels, epoch_labels.unsqueeze(dim=0)), dim=0)
         if keep_losses :
             self.test_losses = torch.cat((self.test_losses, torch.tensor([epoch_loss])), dim=0)
         if keep_accs:
