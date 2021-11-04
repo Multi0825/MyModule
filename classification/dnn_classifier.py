@@ -81,7 +81,7 @@ class DNNClassifier(_ClassifierBase):
     train_y: 訓練ラベル(torch.tensor)
     epoch: エポック数
     batch_size: バッチサイズ
-    add_func: モデル出力に追加で適用する関数
+    extra_func: モデル出力に追加で適用する関数
     keep_outputs: 出力を何エポックごとに保持するか(データ量を減らす)
     keep_losses: 損失を何エポックごとに保持するか
     keep_accs: 精度を何エポックごとに保持するか
@@ -90,7 +90,7 @@ class DNNClassifier(_ClassifierBase):
     to_np: 結果をnumpyに変換
     '''
     def train(self, train_x, train_y, epoch, batch_size, 
-              add_func=None,
+              extra_func=None,
               keep_outputs=1, keep_losses=1, keep_accs=1, verbose=1, log_fn=None, to_np=False) :
         # DataLoader
         train_data_size = train_x.size()[0]
@@ -109,8 +109,8 @@ class DNNClassifier(_ClassifierBase):
                 # 出力
                 pred_y = self.model(x)
                 # 追加処理
-                if add_func is not None :
-                    pred_y = add_func(pred_y)
+                if extra_func is not None :
+                    pred_y = extra_func(pred_y)
                 epoch_outputs = torch.cat((epoch_outputs, pred_y),dim=0)
                 # 勾配の初期化
                 self.optim.zero_grad()
@@ -147,7 +147,7 @@ class DNNClassifier(_ClassifierBase):
     テスト
     test_x: テストデータ(torch.tensor)
     test_y: テストラベル(torch.tensor)
-    add_func: モデル出力に追加で適用する関数
+    extra_func: モデル出力に追加で適用する関数
     keep_outputs: 出力を保持するか(0:無 or 1:有)
     keep_losses: 損失を保持するか(0:無 or 1:有)
     keep_accs: 精度を保持するか(0:無 or 1:有)
@@ -156,7 +156,7 @@ class DNNClassifier(_ClassifierBase):
     to_np: 結果をnumpyに変換
     '''
     # テスト
-    def test(self, test_x, test_y, add_func=None, 
+    def test(self, test_x, test_y, extra_func=None, 
              keep_outputs=1, keep_losses=1, keep_accs=1, verbose=1, log_fn=None, to_np=False) :
         # DataLoader
         test_data_size = test_x.size()[0]
@@ -174,8 +174,8 @@ class DNNClassifier(_ClassifierBase):
             with torch.no_grad() :
                 # 出力
                 pred_y = self.model(x)
-                if add_func is not None :
-                    pred_y = add_func(pred_y)
+                if extra_func is not None :
+                    pred_y = extra_func(pred_y)
                 epoch_outputs = torch.cat((epoch_outputs, pred_y),dim=0)
                 # 損失の計算
                 loss = self.loss_func(pred_y, y) 
@@ -211,7 +211,7 @@ class DNNClassifier(_ClassifierBase):
     test_y: テストラベル(torch.tensor)
     epoch: エポック数
     batch_size: バッチサイズ
-    add_func: モデル出力に追加で適用する関数
+    extra_func: モデル出力に追加で適用する関数
     keep_outputs: 出力を何エポックごとに保持するか(データ量を減らす)
     keep_losses: 損失を何エポックごとに保持するか
     keep_accs: 精度を何エポックごとに保持するか
@@ -219,7 +219,7 @@ class DNNClassifier(_ClassifierBase):
     log_fn: 結果をlogに(None: 標準出力) ＊未実装
     to_np: 結果をnumpyに変換
     '''
-    def train_test(self, train_x, train_y, test_x, test_y, epoch, batch_size, add_func=None,
+    def train_test(self, train_x, train_y, test_x, test_y, epoch, batch_size, extra_func=None,
                    keep_outputs=1, keep_losses=1, keep_accs=1, verbose=1, log_fn=None, to_np=False) :
         # DataLoader
         train_data_size = train_x.size()[0]
@@ -242,8 +242,8 @@ class DNNClassifier(_ClassifierBase):
             for x, y in train_loader :
                 # 出力
                 pred_y = self.model(x)
-                if add_func is not None :
-                    pred_y = add_func(pred_y)
+                if extra_func is not None :
+                    pred_y = extra_func(pred_y)
                 epoch_outputs = torch.cat((epoch_outputs, pred_y),dim=0)
                 # 勾配の初期化
                 self.optim.zero_grad()
@@ -281,8 +281,8 @@ class DNNClassifier(_ClassifierBase):
                 with torch.no_grad() :
                     # 出力
                     pred_y = self.model(x)
-                    if add_func is not None :
-                        pred_y = add_func(pred_y)
+                    if extra_func is not None :
+                        pred_y = extra_func(pred_y)
                     epoch_outputs = torch.cat((epoch_outputs, pred_y),dim=0)
                     # 損失の計算
                     loss = self.loss_func(pred_y, y) 
