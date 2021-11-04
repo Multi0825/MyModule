@@ -68,12 +68,12 @@ class DNNClassifier(_ClassifierBase):
         self.model.to(self.device)
         self.loss_func = loss_func(**loss_args) # 損失関数
         self.optim = optim(self.model.parameters(), **optim_args) # 最適化関数
-        self.train_outputs = None # 訓練出力(Epoch x n_data x n_cls)
-        self.test_outputs = None # テスト出力
-        self.train_losses = None # 訓練ロス
-        self.train_accs = None # 訓練精度
-        self.test_losses = None # テストロス
-        self.test_accs = None # テスト精度
+        self.train_outputs = torch.tensor([], device=self.device) # 各エポックの出力(Epoch x n_data x n_cls)
+        self.train_losses = torch.tensor([]) # 各エポックの損失
+        self.train_accs = torch.tensor([]) # 各エポックの精度
+        self.test_outputs = torch.tensor([], device=self.device) # 各エポックの出力
+        self.test_losses = torch.tensor([]) # 各エポックの損失
+        self.test_accs = torch.tensor([]) # 各エポックの精度
         
     '''
     訓練
@@ -81,6 +81,7 @@ class DNNClassifier(_ClassifierBase):
     train_y: 訓練ラベル(torch.tensor)
     epoch: エポック数
     batch_size: バッチサイズ
+    add_func: モデル出力に追加で適用する関数
     keep_outputs: 出力を何エポックごとに保持するか(データ量を減らす)
     keep_losses: 損失を何エポックごとに保持するか
     keep_accs: 精度を何エポックごとに保持するか
@@ -89,6 +90,7 @@ class DNNClassifier(_ClassifierBase):
     to_np: 結果をnumpyに変換
     '''
     def train(self, train_x, train_y, epoch, batch_size, 
+              add_func=None,
               keep_outputs=1, keep_losses=1, keep_accs=1, verbose=1, log_fn=None, to_np=False) :
         # DataLoader
         train_data_size = train_x.size()[0]
@@ -97,9 +99,6 @@ class DNNClassifier(_ClassifierBase):
         train_loader = DataLoader(train_ds, batch_size=batch_size)
 
         print('Start Training')
-        self.train_outputs = torch.tensor([], device=self.device) # 各エポックの出力(上手くできているかの確認用)
-        self.train_losses = torch.tensor([]) # 各エポックの損失
-        self.train_accs = torch.tensor([]) # 各エポックの精度
         self.model.train()
         for e in range(1, epoch+1):
             print('Epoch: {}'.format(e))
@@ -109,6 +108,9 @@ class DNNClassifier(_ClassifierBase):
             for x, y in train_loader :
                 # 出力
                 pred_y = self.model(x)
+                # 追加処理
+                if add_func is not None :
+                    pred_y = add_func(pred_y)
                 epoch_outputs = torch.cat((epoch_outputs, pred_y),dim=0)
                 # 勾配の初期化
                 self.optim.zero_grad()
@@ -135,6 +137,7 @@ class DNNClassifier(_ClassifierBase):
             if e%keep_accs==0 :
                 epoch_acc = epoch_hit/train_data_size
                 self.train_accs = torch.cat((self.train_accs, torch.tensor([epoch_acc])), dim=0)
+        # numpyに変換するか
         if to_np :
             return torch2np(self.train_losses), torch2np(self.train_accs)
         else :
@@ -144,12 +147,17 @@ class DNNClassifier(_ClassifierBase):
     テスト
     test_x: テストデータ(torch.tensor)
     test_y: テストラベル(torch.tensor)
-    verbose: 結果(損失と精度)を表示するか(0:出力無し or 1)
+    add_func: モデル出力に追加で適用する関数
+    keep_outputs: 出力を保持するか(0:無 or 1:有)
+    keep_losses: 損失を保持するか(0:無 or 1:有)
+    keep_accs: 精度を保持するか(0:無 or 1:有)
+    verbose: 結果(損失と精度)を表示するか(0:無 or 1:有)
     log_fn: 結果をlogに(None: 標準出力) ＊未実装
     to_np: 結果をnumpyに変換
     '''
     # テスト
-    def test(self, test_x, test_y, verbose=1, log_fn=None, to_np=False) :
+    def test(self, test_x, test_y, add_func=None, 
+             keep_outputs=1, keep_losses=1, keep_accs=1, verbose=1, log_fn=None, to_np=False) :
         # DataLoader
         test_data_size = test_x.size()[0]
         test_ds = TensorDataset(test_x, test_y)
@@ -157,16 +165,18 @@ class DNNClassifier(_ClassifierBase):
         test_loader = DataLoader(test_ds, batch_size=test_data_size)
 
         print('Start Test')
-        self.test_outputs = torch.tensor([], device=self.device) # 出力
-        self.test_losses = torch.tensor([0.]) # 損失(返り血は一次元に)
-        self.test_accs = torch.tensor([0.])# 精度
         self.model.eval()
+        epoch_outputs = torch.tensor([], device=self.device)
+        epoch_loss = 0
+        epoch_hit = 0
         for x, y in test_loader :
             # 勾配計算をしない場合
             with torch.no_grad() :
                 # 出力
                 pred_y = self.model(x)
-                self.test_outputs = torch.cat((self.test_outputs, pred_y), dim=0)
+                if add_func is not None :
+                    pred_y = add_func(pred_y)
+                epoch_outputs = torch.cat((epoch_outputs, pred_y),dim=0)
                 # 損失の計算
                 loss = self.loss_func(pred_y, y) 
                 self.test_losses[0] = loss.item()
@@ -179,7 +189,15 @@ class DNNClassifier(_ClassifierBase):
         if verbose :
             print('Loss: {}'.format(self.test_losses[0].item()))
             print('Acc: {}\n'.format(self.test_accs[0].item()))
-        
+        # 結果保存
+        if keep_outputs :
+            self.test_outputs = torch.cat((self.test_outputs,epoch_outputs.unsqueeze(dim=0)), dim=0)
+        if keep_losses :
+            self.test_losses = torch.cat((self.test_losses, torch.tensor([epoch_loss])), dim=0)
+        if keep_accs:
+            epoch_acc = epoch_hit/test_data_size
+            self.test_accs = torch.cat((self.test_accs, torch.tensor([epoch_acc])), dim=0)
+        # numpyに変換するか
         if to_np :
             return torch2np(self.test_losses), torch2np(self.test_accs)
         else :
@@ -193,6 +211,7 @@ class DNNClassifier(_ClassifierBase):
     test_y: テストラベル(torch.tensor)
     epoch: エポック数
     batch_size: バッチサイズ
+    add_func: モデル出力に追加で適用する関数
     keep_outputs: 出力を何エポックごとに保持するか(データ量を減らす)
     keep_losses: 損失を何エポックごとに保持するか
     keep_accs: 精度を何エポックごとに保持するか
@@ -200,7 +219,7 @@ class DNNClassifier(_ClassifierBase):
     log_fn: 結果をlogに(None: 標準出力) ＊未実装
     to_np: 結果をnumpyに変換
     '''
-    def train_test(self, train_x, train_y, test_x, test_y, epoch, batch_size, 
+    def train_test(self, train_x, train_y, test_x, test_y, epoch, batch_size, add_func=None,
                    keep_outputs=1, keep_losses=1, keep_accs=1, verbose=1, log_fn=None, to_np=False) :
         # DataLoader
         train_data_size = train_x.size()[0]
@@ -212,12 +231,6 @@ class DNNClassifier(_ClassifierBase):
         test_loader = DataLoader(test_ds, batch_size=test_data_size)
 
         print('Start Training & Test')
-        self.train_outputs = torch.tensor([], device=self.device) # 各エポックの出力(上手くできているかの確認用)
-        self.train_losses = torch.tensor([]) # 各エポックの損失
-        self.train_accs = torch.tensor([]) # 各エポックの精度
-        self.test_outputs = torch.tensor([], device=self.device) # 各エポックの出力(上手くできているかの確認用)
-        self.test_losses = torch.tensor([]) # 各エポックの損失
-        self.test_accs = torch.tensor([]) # 各エポックの精度
         
         for e in range(1, epoch+1):
             print('Epoch: {}'.format(e))
@@ -229,6 +242,8 @@ class DNNClassifier(_ClassifierBase):
             for x, y in train_loader :
                 # 出力
                 pred_y = self.model(x)
+                if add_func is not None :
+                    pred_y = add_func(pred_y)
                 epoch_outputs = torch.cat((epoch_outputs, pred_y),dim=0)
                 # 勾配の初期化
                 self.optim.zero_grad()
@@ -266,6 +281,8 @@ class DNNClassifier(_ClassifierBase):
                 with torch.no_grad() :
                     # 出力
                     pred_y = self.model(x)
+                    if add_func is not None :
+                        pred_y = add_func(pred_y)
                     epoch_outputs = torch.cat((epoch_outputs, pred_y),dim=0)
                     # 損失の計算
                     loss = self.loss_func(pred_y, y) 
@@ -286,21 +303,21 @@ class DNNClassifier(_ClassifierBase):
             if e%keep_accs==0:
                 epoch_acc = epoch_hit/test_data_size
                 self.test_accs = torch.cat((self.test_accs, torch.tensor([epoch_acc])), dim=0)
-
+        # numpyに変換するか
         if to_np :
             return torch2np(self.train_losses), torch2np(self.train_accs), \
                    torch2np(self.test_losses), torch2np(self.test_accs) 
         else :
             return self.train_losses, self.train_accs, \
                    self.test_losses, self.test_accs
-
+    
     # モデルのパラメータ保存
-    def save_model(self, model_fn):
+    def save_model(self, model_fn) -> None:
         torch.save(self.model.state_dict(), model_fn)
 
     # モデルのパラメータ読み込み
     # 要確認 パラメータをロードした後、optim(model.parameters())を再生成する必要はないのか
-    def load_model(self, model_fn) :
+    def load_model(self, model_fn) -> None:
         self.model.load_state_dict(torch.load(model_fn))
 
     # 出力がうまくできているか(途中)
