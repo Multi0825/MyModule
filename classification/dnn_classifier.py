@@ -59,7 +59,7 @@ class DNNClassifier(_ClassifierBase):
     loss_args: 損失関数引数(辞書型)
     optim: 最適化関数
     optim_args: 最適化関数引数(辞書型、model.parameters()以外)
-    init_seed: モデルのパラメータの初期化のシード
+    init_seed: モデルのパラメータの初期化のシード(ただここでシード指定しても、いたる箇所で乱数の影響があるため固定は完全同一は無理)
     '''
     def __init__(self, model, model_args={}, 
                  loss_func=nn.CrossEntropyLoss, loss_args={}, 
@@ -241,8 +241,8 @@ class DNNClassifier(_ClassifierBase):
         train_ds = TensorDataset(train_x, train_y)
         test_ds = TensorDataset(test_x, test_y)
         # shuffleはシード値指定できないから無し or 手動
-        train_loader = DataLoader(train_ds, batch_size=batch_size)
-        test_loader = DataLoader(test_ds, batch_size=test_data_size)
+        train_loader = DataLoader(train_ds, batch_size=batch_size, shuffle=False)
+        test_loader = DataLoader(test_ds, batch_size=test_data_size, shuffle=False)
 
         print('Start Training & Test')
         
