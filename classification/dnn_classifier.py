@@ -374,7 +374,7 @@ class DNNClassifier(_ClassifierBase):
             epoch_outputs = self.test_outputs[no]
             _, out2cls = epoch_outputs.max(dim=1) # 出力をクラスに変換
             epoch_labels = self.test_labels[no]
-            classes = torch.unique(torch.squeeze(epoch_labels, dim=1)).tolist() # 重複無しクラスリスト
+            classes = torch.unique(epoch_labels, dim=1).tolist() # 重複無しクラスリスト
             cls_counts = sorted({c:(out2cls==c).sum().item() for c in classes}.items()) # 出力クラス出現回数
             c_m = confusion_matrix(epoch_labels, epoch_outputs) # 混同行列
             logger.debug( \
