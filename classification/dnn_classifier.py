@@ -359,6 +359,7 @@ class DNNClassifier(_ClassifierBase):
             s_handler = StreamHandler()
             s_handler.setLevel(logging.DEBUG)
             logger.addHandler(s_handler)
+            print('Stream')
         if log_fn is not None :
             f_handler = FileHandler(log_fn, 'w')
             f_handler.setLevel(logging.INFO)
@@ -366,11 +367,13 @@ class DNNClassifier(_ClassifierBase):
             # 時刻とファイル名をファイル出力のみに追加
             f_handler.setFormatter(Formatter('%(asctime)s-%(filename)s')) 
             logger.info('')
-            f_handler.setFormatter(Formatter('%(message)s'))
+            f_handler.setFormatter(Formatter())
+            print('File')
         
         logger.debug('Test Results')
         n_outputs = self.test_labels.size(0)
         for no in range(n_outputs) :
+            print(no)
             epoch_outputs = self.test_outputs[no]
             _, out2cls = epoch_outputs.max(dim=1) # 出力をクラスに変換
             epoch_labels = self.test_labels[no]
