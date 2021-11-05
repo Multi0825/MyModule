@@ -366,7 +366,7 @@ class DNNClassifier(_ClassifierBase):
             # 時刻とファイル名をファイル出力のみに追加
             f_handler.setFormatter(Formatter('%(asctime)s-%(filename)s')) 
             logger.info('')
-            f_handler.setFormatter(Formatter())
+            f_handler.setFormatter(Formatter('%(message)s'))
         
         logger.debug('Test Results')
         n_outputs = self.test_labels.size(0)
@@ -377,7 +377,7 @@ class DNNClassifier(_ClassifierBase):
             classes = torch.unique(epoch_labels).tolist() # 重複無しクラスリスト
             cls_counts = sorted({c:(out2cls==c).sum().item() for c in classes}.items()) # 出力クラス出現回数
             c_m = confusion_matrix(epoch_labels, out2cls) # 混同行列
-            logger.debug( \
+            logger.debug(\
             'No.{}\n'.format(no) + \
             'Pred :{}\n'.format(out2cls.tolist()) + \
             'True :{}\n'.format(epoch_labels.tolist()) + \
