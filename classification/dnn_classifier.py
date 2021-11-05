@@ -1,6 +1,8 @@
 # ハイパーパラメータ等を入力し、クラス分類(訓練、検証)
 import numpy as np
 import matplotlib.pyplot as plt
+import logging
+from logging import getLogger, Formatter, StreamHandler, FileHandler
 import torch
 import torch.nn as nn
 from torch import optim as optimizer
@@ -72,6 +74,7 @@ class DNNClassifier(_ClassifierBase):
         self.loss_func = loss_func(**loss_args) # 損失関数
         self.optim = optim(self.model.parameters(), **optim_args) # 最適化関数
         # 訓練
+        self.epoch_count = 0
         self.train_outputs = torch.tensor([], device=self.device) # 各エポックの出力(Epoch x n_data x n_cls)
         self.train_labels = torch.tensor([], device=self.device) # 各エポックの出力に対応するラベル(Epoch x n_data)
         self.train_losses = torch.tensor([]) # 各エポックの損失
@@ -148,6 +151,7 @@ class DNNClassifier(_ClassifierBase):
             if e%keep_accs==0 :
                 epoch_acc = epoch_hit/train_data_size
                 self.train_accs = torch.cat((self.train_accs, torch.tensor([epoch_acc])), dim=0)
+        self.epoch_count += epoch
         # numpyに変換するか
         if to_np :
             return torch2np(self.train_losses), torch2np(self.train_accs)
@@ -329,6 +333,7 @@ class DNNClassifier(_ClassifierBase):
             if e%keep_accs==0:
                 epoch_acc = epoch_hit/test_data_size
                 self.test_accs = torch.cat((self.test_accs, torch.tensor([epoch_acc])), dim=0)
+        self.epoch_count += epoch
         # numpyに変換するか
         if to_np :
             return torch2np(self.train_losses), torch2np(self.train_accs), \
@@ -346,14 +351,61 @@ class DNNClassifier(_ClassifierBase):
     def load_model(self, model_fn) -> None:
         self.model.load_state_dict(torch.load(model_fn))
 
-    # 出力がうまくできているか(途中)
-    def check_outputs(self, is_test=True, log_fn=None) :
-        # 何を出力するか
-        # Epoch 1
-        #   Eval1
-        #   Eval2
-        # Epoch 2
+    # テスト結果が確認
+    def outputs_test_results(self, log_fn=None, stream=True) :
+        logger = getLogger('Logger')
+        s_handler = StreamHandler()
+        s_handler.setLevel(logging.DEBUG)
+        logger.addHandler(s_handler)
+        if log_fn is not None :
+            f_handler = FileHandler(log_fn, 'w')
+            f_handler.setLevel(logging.INFO)
+            logger.addHandler(f_handler)
+            # 時間とファイル名をファイルのみに追加
+            f_handler.setFormatter(Formatter('%(asctime)s-%(filename)s')) 
+            logger.info('')
+            f_handler.setFormatter(Formatter())
         
+        n_outputs = self.test_labels.size(0)
+        for no in range(n_outputs) :
+            epoch_outputs = self.test_outputs[no]
+            epoch_labels = self.test_labels[no]
+            classes = list(set(epoch_labels)) # 重複無しクラスリスト
+            cls_counts = {c: epoch_labels.count(c) for c in classes} # 出力クラス出現回数
+            _, out2cls = epoch_outputs.max(dim=1) # 出力をクラスに変換
+            
+            
+        logger.debug('Test Outputs')
+        logger.debug('Actual Rate: 0:1={}:{}\n'.format(len(test_false_inds), len(test_true_inds)))
+        mu.print_ex('Test Outputs', out_fn=out_fn,reset=True)
+        mu.print_ex('Actual Rate: 0:1={}:{}\n'.format(len(test_false_inds), len(test_true_inds)), out_fn=out_fn)
+
+        for e in range(0, total_epoch) :
+            mu.print_ex('Epoch {}'.format(e),out_fn=out_fn)
+            epoch_outputs = dc.torch2np(classifier.test_outputs[e])
+            epoch_labels = dc.torch2np(classifier.test_labels[e])
+            # 出力
+            mu.print_ex('Outputs', out_fn=out_fn)
+            mu.print_ex(epoch_outputs, out_fn=out_fn)
+            # 値の平均
+            mu.print_ex('Average Value: 0:1={}:{}'.format(np.mean(epoch_outputs[:,0]), np.mean(epoch_outputs[:,1])), out_fn=out_fn)
+            out2cls = e.max(dim=1) # クラスに変換
+            n0 = out2cls.count(0)
+            n1 = out2cls.count(1)
+            # 割合
+            mu.print_ex('Rate: 0:1={}:{}'.format(n0,n1), out_fn=out_fn)
+            # ラベル
+            mu.print_ex('Pred : {}'.format(out2cls), out_fn=out_fn)
+            mu.print_ex('Label: {}'.format(epoch_labels), out_fn=out_fn)
+            # 精度
+            mu.print_ex('Acc: {}'.format(test_accs[e]), out_fn=out_fn)
+            # 真陽(TP,1,1)、偽陰(FN, 1,0)、真陰(TN 0,0)、偽陽(FP,0,1)
+            c_m = confusion_matrix(epoch_labels, out2cls)
+            sum_c_m = np.sum(c_m)
+            mu.print_ex('TP:{}({}), FN:{}({}), TN:{}({}), FP:{}({})'
+            .format(c_m[1,1]/np.sum(c_m), c_m[1,1], c_m[1,0]/np.sum(c_m), c_m[1,0], 
+                    c_m[0,0]/np.sum(c_m) ,c_m[0,0], c_m[0,1]/np.sum(c_m), c_m[0,1]),out_fn=out_fn)
+            mu.print_ex('\n', out_fn=out_fn)
         # Eval
         # 出力をクラスに直して、各クラスの数
         # 値の最大、最小、平均値
