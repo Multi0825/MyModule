@@ -381,7 +381,7 @@ class DNNClassifier(_ClassifierBase):
             logger.debug(\
             'No.{}\n'.format(no) + \
             'Pred :{}\n'.format(out2cls.tolist()) + \
-            'True :{}\n'.format(epoch_labels.tolist()) + \
+            'True :{}\n'.format([int(el) for el in epoch_labels.tolist()]) + \
             'Class: {}\n'.format(cls_counts) + \
             'Acc: {}\n'.format(self.test_accs[no].item()) + \
             'Conf Matrix(T\\P): \n' + \
