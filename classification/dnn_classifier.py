@@ -76,13 +76,13 @@ class DNNClassifier(_ClassifierBase):
         self.optim = optim(self.model.parameters(), **optim_args) # 最適化関数
         # 訓練
         self.epoch_count = 0
-        self.train_outputs = torch.tensor([], device=self.device) # 各エポックの出力(Epoch x n_data x n_cls)
-        self.train_labels = torch.tensor([], device=self.device) # 各エポックの出力に対応するラベル(Epoch x n_data)
+        self.train_outputs = torch.tensor([]) # 各エポックの出力(Epoch x n_data x n_cls)
+        self.train_labels = torch.tensor([]) # 各エポックの出力に対応するラベル(Epoch x n_data)
         self.train_losses = torch.tensor([]) # 各エポックの損失
         self.train_accs = torch.tensor([]) # 各エポックの精度
         # テスト
-        self.test_outputs = torch.tensor([], device=self.device) # 各エポックの出力
-        self.test_labels = torch.tensor([], device=self.device) # 各エポックの出力に対応するラベル
+        self.test_outputs = torch.tensor([]) # 各エポックの出力
+        self.test_labels = torch.tensor([]) # 各エポックの出力に対応するラベル
         self.test_losses = torch.tensor([]) # 各エポックの損失
         self.test_accs = torch.tensor([]) # 各エポックの精度
         
@@ -113,8 +113,8 @@ class DNNClassifier(_ClassifierBase):
         self.model.train()
         for e in range(1, epoch+1):
             print('Epoch: {}'.format(e))
-            epoch_outputs = torch.tensor([], device=self.device)
-            epoch_labels = torch.tensor([], device=self.device)
+            epoch_outputs = torch.tensor([])
+            epoch_labels = torch.tensor([])
             epoch_loss = 0
             epoch_hit = 0
             for x, y in train_loader :
@@ -124,8 +124,8 @@ class DNNClassifier(_ClassifierBase):
                 if extra_func is not None :
                     pred_y = extra_func(pred_y)
                 # 出力、ラベル保存処理
-                epoch_outputs = torch.cat((epoch_outputs, pred_y),dim=0)
-                epoch_labels = torch.cat((epoch_labels, y), dim=0)
+                epoch_outputs = torch.cat((epoch_outputs, pred_y.to('cpu')),dim=0)
+                epoch_labels = torch.cat((epoch_labels, y.to('cpu')), dim=0)
                 # 勾配の初期化
                 self.optim.zero_grad()
                 # 損失の計算
@@ -182,8 +182,8 @@ class DNNClassifier(_ClassifierBase):
 
         print('Start Test')
         self.model.eval()
-        epoch_outputs = torch.tensor([], device=self.device)
-        epoch_labels = torch.tensor([], device=self.device)
+        epoch_outputs = torch.tensor([])
+        epoch_labels = torch.tensor([])
         epoch_loss = 0
         epoch_hit = 0
         for x, y in test_loader :
@@ -195,8 +195,8 @@ class DNNClassifier(_ClassifierBase):
                 if extra_func is not None :
                     pred_y = extra_func(pred_y)
                 # 出力、ラベル保存処理
-                epoch_outputs = torch.cat((epoch_outputs, pred_y),dim=0)
-                epoch_labels = torch.cat((epoch_labels, y), dim=0)
+                epoch_outputs = torch.cat((epoch_outputs, pred_y.to('cpu')),dim=0)
+                epoch_labels = torch.cat((epoch_labels, y.to('cpu')), dim=0)
                 # 損失の計算
                 loss = self.loss_func(pred_y, y) 
                 self.test_losses[0] = loss.item()
@@ -257,8 +257,8 @@ class DNNClassifier(_ClassifierBase):
             print('Epoch: {}'.format(e))
             # 訓練
             self.model.train()
-            epoch_outputs = torch.tensor([], device=self.device)
-            epoch_labels = torch.tensor([], device=self.device)
+            epoch_outputs = torch.tensor([])
+            epoch_labels = torch.tensor([])
             epoch_loss = 0
             epoch_hit = 0
             for x, y in train_loader :
@@ -268,8 +268,8 @@ class DNNClassifier(_ClassifierBase):
                 if extra_func is not None :
                     pred_y = extra_func(pred_y)
                 # 出力、ラベル保存処理
-                epoch_outputs = torch.cat((epoch_outputs, pred_y),dim=0)
-                epoch_labels = torch.cat((epoch_labels, y), dim=0)
+                epoch_outputs = torch.cat((epoch_outputs, pred_y.to('cpu')),dim=0)
+                epoch_labels = torch.cat((epoch_labels, y.to('cpu')), dim=0)
                 # 勾配の初期化
                 self.optim.zero_grad()
                 # 損失の計算
@@ -299,8 +299,8 @@ class DNNClassifier(_ClassifierBase):
             
             # テスト
             self.model.eval()
-            epoch_outputs = torch.tensor([], device=self.device)
-            epoch_labels = torch.tensor([], device=self.device)
+            epoch_outputs = torch.tensor([])
+            epoch_labels = torch.tensor([])
             epoch_loss = 0
             epoch_hit = 0
             for x, y in test_loader :
@@ -312,8 +312,8 @@ class DNNClassifier(_ClassifierBase):
                     if extra_func is not None :
                         pred_y = extra_func(pred_y)
                     # 出力、ラベル保存処理
-                    epoch_outputs = torch.cat((epoch_outputs, pred_y),dim=0)
-                    epoch_labels = torch.cat((epoch_labels, y), dim=0)
+                    epoch_outputs = torch.cat((epoch_outputs, pred_y.to('cpu')),dim=0)
+                    epoch_labels = torch.cat((epoch_labels, y.to('cpu')), dim=0)
                     # 損失の計算
                     loss = self.loss_func(pred_y, y) 
                     epoch_loss += loss.item()
