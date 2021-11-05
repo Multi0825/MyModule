@@ -355,9 +355,10 @@ class DNNClassifier(_ClassifierBase):
     # テスト結果を確認
     def outputs_test_results(self, log_fn=None, stream=True) :
         logger = getLogger('Test Results')
-        s_handler = StreamHandler()
-        s_handler.setLevel(logging.DEBUG)
-        logger.addHandler(s_handler)
+        if stream :
+            s_handler = StreamHandler()
+            s_handler.setLevel(logging.DEBUG)
+            logger.addHandler(s_handler)
         if log_fn is not None :
             f_handler = FileHandler(log_fn, 'w')
             f_handler.setLevel(logging.INFO)
