@@ -8,6 +8,7 @@ import torch.nn as nn
 from torch import optim as optimizer
 from torch.utils.data import TensorDataset, DataLoader, Subset
 from sklearn.model_selection import train_test_split
+from sklearn.metrics import confusion_matrix
 from .classifier_base import _ClassifierBase
 
 '''
@@ -351,9 +352,9 @@ class DNNClassifier(_ClassifierBase):
     def load_model(self, model_fn) -> None:
         self.model.load_state_dict(torch.load(model_fn))
 
-    # テスト結果が確認
+    # テスト結果を確認
     def outputs_test_results(self, log_fn=None, stream=True) :
-        logger = getLogger('Logger')
+        logger = getLogger('Test Results')
         s_handler = StreamHandler()
         s_handler.setLevel(logging.DEBUG)
         logger.addHandler(s_handler)
@@ -361,67 +362,39 @@ class DNNClassifier(_ClassifierBase):
             f_handler = FileHandler(log_fn, 'w')
             f_handler.setLevel(logging.INFO)
             logger.addHandler(f_handler)
-            # 時間とファイル名をファイルのみに追加
+            # 時刻とファイル名をファイル出力のみに追加
             f_handler.setFormatter(Formatter('%(asctime)s-%(filename)s')) 
             logger.info('')
             f_handler.setFormatter(Formatter())
         
+        logger.debug('Test Results')
         n_outputs = self.test_labels.size(0)
         for no in range(n_outputs) :
             epoch_outputs = self.test_outputs[no]
-            epoch_labels = self.test_labels[no]
-            classes = list(set(epoch_labels)) # 重複無しクラスリスト
-            cls_counts = {c: epoch_labels.count(c) for c in classes} # 出力クラス出現回数
             _, out2cls = epoch_outputs.max(dim=1) # 出力をクラスに変換
+            epoch_labels = self.test_labels[no]
+            classes = torch.unique(torch.squeeze(epoch_labels, dim=1)).tolist() # 重複無しクラスリスト
+            cls_counts = sorted({c:(out2cls==c).sum().item() for c in classes}.items()) # 出力クラス出現回数
+            c_m = confusion_matrix(epoch_labels, epoch_outputs) # 混同行列
+            logger.debug( \
+            'No.{}\n'.format(no) + \
+            'Pred :{}\n'.format(out2cls.tolist()) + \
+            'True :{}\n'.format(epoch_labels.tolist()) + \
+            'Class: {}\n'.format(cls_counts) + \
+            'Acc: {}\n'.format(self.test_accs[no].item()) + \
+            'Conf Matrix(T\\P): \n' + \
+            '{}\n'.format(c_m) + \
+            'Model Outputs: \n' + \
+            '{}\n'.format(epoch_outputs.tolist()) + \
+            'Total Avg: {}\n'.format(epoch_outputs.mean()) + \
+            'Class Avg: {}\n'.format([epoch_outputs[:,i].mean().item() for i in range(len(classes))]) + \
+            'Total Max: {}\n'.format(epoch_outputs.max()) + \
+            'Class Max: {}\n'.format([epoch_outputs[:,i].max().item() for i in range(len(classes))]) + \
+            'Total Min: {}\n'.format(epoch_outputs.min()) + \
+            'Class Min: {}\n'.format([epoch_outputs[:,i].min().item() for i in range(len(classes))]) + \
+            '\n')
             
-            
-        logger.debug('Test Outputs')
-        logger.debug('Actual Rate: 0:1={}:{}\n'.format(len(test_false_inds), len(test_true_inds)))
-        mu.print_ex('Test Outputs', out_fn=out_fn,reset=True)
-        mu.print_ex('Actual Rate: 0:1={}:{}\n'.format(len(test_false_inds), len(test_true_inds)), out_fn=out_fn)
-
-        for e in range(0, total_epoch) :
-            mu.print_ex('Epoch {}'.format(e),out_fn=out_fn)
-            epoch_outputs = dc.torch2np(classifier.test_outputs[e])
-            epoch_labels = dc.torch2np(classifier.test_labels[e])
-            # 出力
-            mu.print_ex('Outputs', out_fn=out_fn)
-            mu.print_ex(epoch_outputs, out_fn=out_fn)
-            # 値の平均
-            mu.print_ex('Average Value: 0:1={}:{}'.format(np.mean(epoch_outputs[:,0]), np.mean(epoch_outputs[:,1])), out_fn=out_fn)
-            out2cls = e.max(dim=1) # クラスに変換
-            n0 = out2cls.count(0)
-            n1 = out2cls.count(1)
-            # 割合
-            mu.print_ex('Rate: 0:1={}:{}'.format(n0,n1), out_fn=out_fn)
-            # ラベル
-            mu.print_ex('Pred : {}'.format(out2cls), out_fn=out_fn)
-            mu.print_ex('Label: {}'.format(epoch_labels), out_fn=out_fn)
-            # 精度
-            mu.print_ex('Acc: {}'.format(test_accs[e]), out_fn=out_fn)
-            # 真陽(TP,1,1)、偽陰(FN, 1,0)、真陰(TN 0,0)、偽陽(FP,0,1)
-            c_m = confusion_matrix(epoch_labels, out2cls)
-            sum_c_m = np.sum(c_m)
-            mu.print_ex('TP:{}({}), FN:{}({}), TN:{}({}), FP:{}({})'
-            .format(c_m[1,1]/np.sum(c_m), c_m[1,1], c_m[1,0]/np.sum(c_m), c_m[1,0], 
-                    c_m[0,0]/np.sum(c_m) ,c_m[0,0], c_m[0,1]/np.sum(c_m), c_m[0,1]),out_fn=out_fn)
-            mu.print_ex('\n', out_fn=out_fn)
-        # Eval
-        # 出力をクラスに直して、各クラスの数
-        # 値の最大、最小、平均値
-        if is_test & (self.test_outputs is not None):
-            for e, epoch_outputs in enumerate(self.test_outputs) :
-                print('Epoch {}'.format(e))
-                print(epoch_outputs)
-                # 
-            
-        if (not is_test) & (self.train_outputs is not None) :
-            
-            pass
-        else :
-            print('Outputs is None!')
-            print('Do train, test or train_test!')
-
+        
 
 
 
