@@ -358,15 +358,15 @@ class DNNClassifier(_ClassifierBase):
         logger.setLevel(logging.DEBUG)
         if stream :
             s_handler = StreamHandler()
-            s_handler.setLevel(logging.DEBUG)
+            s_handler.setLevel(logging.INFO)
             logger.addHandler(s_handler)
         if log_fn is not None :
             f_handler = FileHandler(log_fn, 'w')
-            f_handler.setLevel(logging.INFO)
+            f_handler.setLevel(logging.DEBUG)
             logger.addHandler(f_handler)
             # 時刻とファイル名をファイル出力のみに追加
             f_handler.setFormatter(Formatter('%(asctime)s-%(filename)s')) 
-            logger.info('')
+            logger.debug('')
             f_handler.setFormatter(Formatter())
         
         logger.debug('Test Results')
@@ -378,7 +378,7 @@ class DNNClassifier(_ClassifierBase):
             classes = torch.unique(epoch_labels).tolist() # 重複無しクラスリスト
             cls_counts = sorted({c:(out2cls==c).sum().item() for c in classes}.items()) # 出力クラス出現回数
             c_m = confusion_matrix(epoch_labels, out2cls) # 混同行列
-            logger.debug(\
+            logger.info(\
             'No.{}\n'.format(no) + \
             'Pred :{}\n'.format(out2cls.tolist()) + \
             'True :{}\n'.format(epoch_labels.tolist()) + \
