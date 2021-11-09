@@ -106,14 +106,15 @@ class DNNClassifier(_ClassifierBase):
     optim: 最適化関数
     optim_args: 最適化関数引数(辞書型、model.parameters()以外)
     init_seed: モデルのパラメータの初期化のシード(ただここでシード指定しても、いたる箇所で乱数の影響があるため固定は完全同一は無理)
+    device
     '''
     def __init__(self, model, model_args={}, 
                  loss_func=nn.CrossEntropyLoss, loss_args={}, 
-                 optim=optimizer.Adam, optim_args={}, init_seed=None) -> None:
+                 optim=optimizer.Adam, optim_args={}, init_seed=None, device='cuda:0') -> None:
         if init_seed is not None :
             torch.manual_seed(init_seed)
         self.model = model(**model_args) # モデル
-        self.device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
+        self.device = device if torch.cuda.is_available() else 'cpu'
         self.model.to(self.device)
         self.loss_func = loss_func(**loss_args) # 損失関数
         self.optim = optim(self.model.parameters(), **optim_args) # 最適化関数
@@ -185,7 +186,7 @@ class DNNClassifier(_ClassifierBase):
             # 結果
             if e%verbose==0 :
                 print('Epoch Loss: {}'.format(epoch_loss))
-                print('Epoch Acc: {}\n'.format(epoch_hit/train_data_size))
+                print('Epoch Acc: {}'.format(epoch_hit/train_data_size))
             # 結果保存
             if e%keep_outputs == 0 :
                 self.train_outputs = torch.cat((self.train_outputs,epoch_outputs.unsqueeze(dim=0)), dim=0)
@@ -251,7 +252,7 @@ class DNNClassifier(_ClassifierBase):
         # 出力
         if verbose :
             print('Loss: {}'.format(self.test_losses[0].item()))
-            print('Acc: {}\n'.format(self.test_accs[0].item()))
+            print('Acc: {}'.format(self.test_accs[0].item()))
         # 結果保存
         if keep_outputs :
             self.test_outputs = torch.cat((self.test_outputs,epoch_outputs.unsqueeze(dim=0)), dim=0)
@@ -367,7 +368,7 @@ class DNNClassifier(_ClassifierBase):
             if e%verbose==0 :
                 print('Test')
                 print('Epoch Loss: {}'.format(epoch_loss))
-                print('Epoch Acc: {}\n'.format(epoch_hit/test_data_size))
+                print('Epoch Acc: {}'.format(epoch_hit/test_data_size))
             # 結果保存
             if e%keep_outputs == 0 :
                 self.test_outputs = torch.cat((self.test_outputs,epoch_outputs.unsqueeze(dim=0)), dim=0)
