@@ -149,7 +149,6 @@ def equalize(a, b, random_seed=None) :
 def shuffle(data, random_seed=None) :
     random.seed(random_seed)
     random.shuffle(data)
-    random.seed()
     return data
 
 # データの標準化(mean=0, var=1)
