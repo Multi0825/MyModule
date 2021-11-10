@@ -129,7 +129,14 @@ class DNNClassifier(_ClassifierBase):
         self.test_labels = torch.tensor([]) # 各エポックの出力に対応するラベル
         self.test_losses = torch.tensor([]) # 各エポックの損失
         self.test_accs = torch.tensor([]) # 各エポックの精度
-        
+    '''
+    デストラクタ
+    GPUを解放できるように
+    '''
+    def __del__(self) :
+        del self.model, self.train_outputs, self.train_labels, self.train_losses, self.train_accs,  \
+            self.test_outputs, self.test_labels, self.test_losses, self.test_accs
+        torch.cuda.empty_cache()  
     '''
     訓練
     train_x: 訓練データ(torch.tensor)
@@ -439,7 +446,10 @@ class DNNClassifier(_ClassifierBase):
             'Total Min: {}\n'.format(epoch_outputs.min()) + \
             'Class Min: {}\n'.format([epoch_outputs[:,i].min().item() for i in range(len(classes))]) + \
             '\n')
-            
+
+
+
+
         
 
 
