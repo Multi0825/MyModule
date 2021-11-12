@@ -163,7 +163,6 @@ class DNNClassifier(_ClassifierBase):
         print('Start Training')
         self.model.train()
         for e in range(1, epoch+1):
-            print('Epoch: {}'.format(e))
             epoch_outputs = torch.tensor([])
             epoch_labels = torch.tensor([])
             epoch_loss = 0
@@ -192,6 +191,7 @@ class DNNClassifier(_ClassifierBase):
             
             # 結果
             if e%verbose==0 :
+                print('Epoch: {}'.format(e))
                 print('Epoch Loss: {}'.format(epoch_loss))
                 print('Epoch Acc: {}'.format(epoch_hit/train_data_size))
             # 結果保存
@@ -231,7 +231,6 @@ class DNNClassifier(_ClassifierBase):
         # shuffleはシード値指定できないから無し or 手動
         test_loader = DataLoader(test_ds, batch_size=test_data_size)
 
-        print('Start Test')
         self.model.eval()
         epoch_outputs = torch.tensor([])
         epoch_labels = torch.tensor([])
@@ -301,11 +300,9 @@ class DNNClassifier(_ClassifierBase):
         # shuffleはシード値指定できないから無し or 手動
         train_loader = DataLoader(train_ds, batch_size=batch_size, shuffle=False)
         test_loader = DataLoader(test_ds, batch_size=test_data_size, shuffle=False)
-
-        print('Start Training & Test')
         
         for e in range(1, epoch+1):
-            print('Epoch: {}'.format(e))
+            
             # 訓練
             self.model.train()
             epoch_outputs = torch.tensor([])
@@ -335,6 +332,7 @@ class DNNClassifier(_ClassifierBase):
                 epoch_hit += (pred_class == y).sum().item()
             # 結果
             if e%verbose==0 :
+                print('Epoch: {}'.format(e))
                 print('Training')
                 print('Epoch Loss: {}'.format(epoch_loss))
                 print('Epoch Acc: {}'.format(epoch_hit/train_data_size))
