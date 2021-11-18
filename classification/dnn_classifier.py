@@ -170,6 +170,7 @@ class DNNClassifier(_ClassifierBase):
             for x, y in train_loader :
                 # GPU使用の場合、転送
                 x = x.to(self.device)
+                y = y.to(self.device)
                 # 出力
                 pred_y = self.model(x)
                 # 追加処理
@@ -244,6 +245,7 @@ class DNNClassifier(_ClassifierBase):
             with torch.no_grad() :
                 # GPU使用の場合、転送
                 x = x.to(self.device)
+                y = y.to(self.device)
                 # 出力
                 pred_y = self.model(x)
                 # 追加処理
@@ -315,8 +317,9 @@ class DNNClassifier(_ClassifierBase):
             epoch_loss = 0
             epoch_hit = 0
             for x, y in train_loader :
+                # GPU使用の場合、転送
                 x = x.to(self.device)
-                print(x.device)
+                y = y.to(self.device)
                 # 出力
                 pred_y = self.model(x)
                 # 追加処理
@@ -362,7 +365,9 @@ class DNNClassifier(_ClassifierBase):
             for x, y in test_loader :
                 # 勾配計算をしない場合
                 with torch.no_grad() :
+                    # GPU使用の場合、転送
                     x = x.to(self.device)
+                    y = y.to(self.device)
                     # 出力
                     pred_y = self.model(x)
                     # 追加処理
