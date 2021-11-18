@@ -304,7 +304,6 @@ class DNNClassifier(_ClassifierBase):
         test_loader = DataLoader(test_ds, batch_size=test_data_size, shuffle=False)
         
         for e in range(1, epoch+1):
-            
             # 訓練
             self.model.train()
             epoch_outputs = torch.tensor([])
@@ -313,6 +312,7 @@ class DNNClassifier(_ClassifierBase):
             epoch_hit = 0
             for x, y in train_loader :
                 x.to(self.device)
+                print(x.device)
                 # 出力
                 pred_y = self.model(x)
                 # 追加処理
