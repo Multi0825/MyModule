@@ -458,6 +458,11 @@ class DNNClassifier(_ClassifierBase):
             'Total Min: {}\n'.format(epoch_outputs.min()) + \
             'Class Min: {}\n'.format([epoch_outputs[:,i].min().item() for i in range(len(classes))]) + \
             '\n')
+        if stream :
+            logger.removeHandler(s_handler)
+        if log_fn is not None :
+            logger.removeHandler(f_handler)
+        
 
 
 
