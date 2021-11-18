@@ -111,9 +111,8 @@ class DNNClassifier(_ClassifierBase):
                  optim=optimizer.Adam, optim_args={}, init_seed=None, device='cuda:0') -> None:
         if init_seed is not None :
             torch.manual_seed(init_seed)
-        self.model = model(**model_args) # モデル
         self.device = device if torch.cuda.is_available() else 'cpu'
-        self.model.to(self.device)
+        self.model = model(**model_args) # モデル
         self.loss_func = loss_func(**loss_args) # 損失関数
         self.optim = optim(self.model.parameters(), **optim_args) # 最適化関数
         # 訓練
@@ -161,6 +160,7 @@ class DNNClassifier(_ClassifierBase):
         train_loader = DataLoader(train_ds, batch_size=batch_size)
 
         print('Start Training')
+        self.model = self.model.to(self.device) # GPU使用の場合、転送
         self.model.train()
         for e in range(1, epoch+1):
             epoch_outputs = torch.tensor([])
@@ -168,7 +168,8 @@ class DNNClassifier(_ClassifierBase):
             epoch_loss = 0
             epoch_hit = 0
             for x, y in train_loader :
-                x.to(self.device)
+                # GPU使用の場合、転送
+                x = x.to(self.device)
                 # 出力
                 pred_y = self.model(x)
                 # 追加処理
@@ -232,7 +233,8 @@ class DNNClassifier(_ClassifierBase):
         # shuffleはシード値指定できないから無し or 手動
         test_loader = DataLoader(test_ds, batch_size=test_data_size)
 
-        self.model.eval()
+        self.model = self.model.to(self.device) # GPU使用の場合、転送
+        self.model.eval()        
         epoch_outputs = torch.tensor([])
         epoch_labels = torch.tensor([])
         epoch_loss = 0
@@ -240,7 +242,8 @@ class DNNClassifier(_ClassifierBase):
         for x, y in test_loader :
             # 勾配計算をしない場合
             with torch.no_grad() :
-                x.to(self.device)
+                # GPU使用の場合、転送
+                x = x.to(self.device)
                 # 出力
                 pred_y = self.model(x)
                 # 追加処理
@@ -302,7 +305,8 @@ class DNNClassifier(_ClassifierBase):
         # shuffleはシード値指定できないから無し or 手動
         train_loader = DataLoader(train_ds, batch_size=batch_size, shuffle=False)
         test_loader = DataLoader(test_ds, batch_size=test_data_size, shuffle=False)
-        
+        # GPU使用の場合、転送
+        self.model = self.model.to(self.device) # GPU使用の場合、転送
         for e in range(1, epoch+1):
             # 訓練
             self.model.train()
@@ -311,8 +315,7 @@ class DNNClassifier(_ClassifierBase):
             epoch_loss = 0
             epoch_hit = 0
             for x, y in train_loader :
-                # x.to(self.device)
-                x.cuda()
+                x = x.to(self.device)
                 print(x.device)
                 # 出力
                 pred_y = self.model(x)
@@ -359,7 +362,7 @@ class DNNClassifier(_ClassifierBase):
             for x, y in test_loader :
                 # 勾配計算をしない場合
                 with torch.no_grad() :
-                    x.to(self.device)
+                    x = x.to(self.device)
                     # 出力
                     pred_y = self.model(x)
                     # 追加処理
