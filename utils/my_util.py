@@ -78,29 +78,46 @@ def pkl_load(pkl_fn) :
     print(pkl_fn + ' has been loaded')
     return variable
 
-# パスファイル(オリジナル)を読込
-# パスファイル定義
-# 1行に1パス、PathId=path
-# *+Id=path(ex. *1=/dir)で書かれたものは別のパスに使える(PathId1=*1/)
-# 特殊なファイル名による不具合は知らない
+'''
+パスファイル(オリジナル)を読込
+パスファイル定義
+1行に1つ、Id=Path, or *Id=Path
+*Idは別のパスに配置で置換
+ex. *id1=/dir1
+    id2=*id1/dir2/
+    id3=*id1/dir3/
+＊特殊なディレクトリ名による不具合は知らない
+'''
 def read_path(path_fn) :
-    path_dict = {}
-    commons = {}
+    path_dict = {} # Id:path
+    ast_path = {} # *Idを記録
     with open(path_fn, mode='r') as f :
         for l in f :
             l = l.replace('\n', '').split('=')
             if len(l) == 2 : # 空行対策
                 path_id = l[0]
                 path = l[1]
-                # "*+Id"を置換(その行までに出てきているもの)
-                for c in commons.items() :
+                # *Idがあれば対応するパスに置換(その行までに出てきているもの)
+                for c in ast_path.items() :
                     if c[0] in path :
                         path = path.replace(c[0],c[1])
-                # Idが"*+Id"のとき記録
+                # *Idを記録
                 if '*'in path_id :
-                    commons[path_id] = path
+                    ast_path[path_id] = path
                 path_dict[path_id] = path
     return path_dict
+
+'''
+read_path()で作成したpath_dictに掲載されたディレクトリをすべて作成
+ignore_ast: *Idを無視
+'''
+def make_path(path_dict, ignore_ast=True) -> None :
+    for item in path_dict.items() :
+        if ignore_ast and ('*' in item[0]) :
+            pass
+        else :
+            os.makedirs(item[1])
+
 
 # 重複のない乱数生成
 # a, b: a <= x < b (random.randintと異なる)
