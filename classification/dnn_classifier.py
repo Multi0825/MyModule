@@ -310,6 +310,7 @@ class DNNClassifier(_ClassifierBase):
         # GPU使用の場合、転送
         self.model = self.model.to(self.device) # GPU使用の場合、転送
         for e in range(1, epoch+1):
+            print(e)
             # 訓練
             self.model.train()
             epoch_outputs = torch.tensor([])
