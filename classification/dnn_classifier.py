@@ -131,6 +131,7 @@ class DNNClassifier(_ClassifierBase):
         self.test_accs = torch.tensor([]) # 各エポックの精度
     '''
     デストラクタ
+    
     GPUを解放できるように
     '''
     def __del__(self) :
@@ -144,15 +145,16 @@ class DNNClassifier(_ClassifierBase):
     epoch: エポック数
     batch_size: バッチサイズ
     extra_func: モデル出力に追加で適用する関数
+    es_d_loss: Early Stoppingを実行する損失の変化量(None: 無)
     keep_outputs: 出力を何エポックごとに保持するか(データ量を減らす)
     keep_losses: 損失を何エポックごとに保持するか
     keep_accs: 精度を何エポックごとに保持するか
-    verbose: 何エポックごとに結果(損失と精度)を表示するか(0:出力無し)
+    verbose: 何エポックごとに結果(損失と精度)を表示するか(0:出力無)
     log_fn: 結果をlogに(None: 標準出力) ＊未実装
     to_np: 結果をnumpyに変換
     '''
     def train(self, train_x, train_y, epoch, batch_size, 
-              extra_func=None,
+              extra_func=None, early_stopping=None,
               keep_outputs=1, keep_losses=1, keep_accs=1, verbose=1, log_fn=None, to_np=False) :
         # DataLoader
         train_data_size = train_x.size()[0]
