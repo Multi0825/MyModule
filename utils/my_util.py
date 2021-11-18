@@ -86,6 +86,7 @@ def pkl_load(pkl_fn) :
 ex. *id1=/dir1
     id2=*id1/dir2/
     id3=*id1/dir3/
+先頭に#で無視
 ＊特殊なディレクトリ名による不具合は知らない
 '''
 def read_path(path_fn) :
@@ -97,14 +98,15 @@ def read_path(path_fn) :
             if len(l) == 2 : # 空行対策
                 path_id = l[0]
                 path = l[1]
-                # *Idがあれば対応するパスに置換(その行までに出てきているもの)
-                for c in ast_path.items() :
-                    if c[0] in path :
-                        path = path.replace(c[0],c[1])
-                # *Idを記録
-                if '*'in path_id :
-                    ast_path[path_id] = path
-                path_dict[path_id] = path
+                if '#' is not path_id[0] :
+                    # *Idがあれば対応するパスに置換(その行までに出てきているもの)
+                    for c in ast_path.items() :
+                        if c[0] in path :
+                            path = path.replace(c[0],c[1])
+                    # *Idを記録
+                    if '*'in path_id :
+                        ast_path[path_id] = path
+                    path_dict[path_id] = path
     return path_dict
 
 '''
