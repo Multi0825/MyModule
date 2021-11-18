@@ -311,7 +311,8 @@ class DNNClassifier(_ClassifierBase):
             epoch_loss = 0
             epoch_hit = 0
             for x, y in train_loader :
-                x.to(self.device)
+                # x.to(self.device)
+                x.cuda()
                 print(x.device)
                 # 出力
                 pred_y = self.model(x)
