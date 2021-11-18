@@ -216,6 +216,7 @@ class DNNClassifier(_ClassifierBase):
     テスト
     test_x: テストデータ(torch.tensor)
     test_y: テストラベル(torch.tensor)
+    batch_size: バッチサイズ
     extra_func: モデル出力に追加で適用する関数
     keep_outputs: 出力を保持するか(0:無 or 1:有)
     keep_losses: 損失を保持するか(0:無 or 1:有)
@@ -225,7 +226,7 @@ class DNNClassifier(_ClassifierBase):
     to_np: 結果をnumpyに変換
     '''
     # テスト
-    def test(self, test_x, test_y, batch_size, extra_func=None, 
+    def test(self, test_x, test_y, batch_size=10, extra_func=None, 
              keep_outputs=1, keep_losses=1, keep_accs=1, verbose=1, log_fn=None, to_np=False) :
         # DataLoader
         test_data_size = test_x.size()[0]
