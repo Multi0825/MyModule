@@ -116,7 +116,7 @@ def make_path(path_dict, ignore_ast=True) -> None :
         if ignore_ast and ('*' in item[0]) :
             pass
         else :
-            os.makedirs(item[1])
+            os.makedirs(item[1], exist_ok=True)
 
 
 # 重複のない乱数生成
