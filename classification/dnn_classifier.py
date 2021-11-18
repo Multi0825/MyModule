@@ -19,10 +19,8 @@ data_type: numpy dtype
            ex. torch.double=np.float64, torch.float=np.float32, torch.long=np.int64, 
 device: cpu or cuda:0(auto: cpu if cuda:0 is unavailable)
 '''
-def np2torch(data, data_type=np.float32, device='auto') :
-    if device=='auto' :
-        device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
-    data = torch.from_numpy(data.astype(data_type)).clone().to(device)
+def np2torch(data, data_type=np.float32) :
+    data = torch.from_numpy(data.astype(data_type)).clone()
     return data
 
 '''
@@ -170,6 +168,7 @@ class DNNClassifier(_ClassifierBase):
             epoch_loss = 0
             epoch_hit = 0
             for x, y in train_loader :
+                x.to(self.device)
                 # 出力
                 pred_y = self.model(x)
                 # 追加処理
@@ -241,6 +240,7 @@ class DNNClassifier(_ClassifierBase):
         for x, y in test_loader :
             # 勾配計算をしない場合
             with torch.no_grad() :
+                x.to(self.device)
                 # 出力
                 pred_y = self.model(x)
                 # 追加処理
@@ -312,6 +312,7 @@ class DNNClassifier(_ClassifierBase):
             epoch_loss = 0
             epoch_hit = 0
             for x, y in train_loader :
+                x.to(self.device)
                 # 出力
                 pred_y = self.model(x)
                 # 追加処理
@@ -357,6 +358,7 @@ class DNNClassifier(_ClassifierBase):
             for x, y in test_loader :
                 # 勾配計算をしない場合
                 with torch.no_grad() :
+                    x.to(self.device)
                     # 出力
                     pred_y = self.model(x)
                     # 追加処理
