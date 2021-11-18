@@ -159,7 +159,6 @@ class DNNClassifier(_ClassifierBase):
         # shuffleはシード値指定できないから無し or 手動
         train_loader = DataLoader(train_ds, batch_size=batch_size)
 
-        print('Start Training')
         self.model = self.model.to(self.device) # GPU使用の場合、転送
         self.model.train()
         for e in range(1, epoch+1):
@@ -340,8 +339,6 @@ class DNNClassifier(_ClassifierBase):
                 # 正解数
                 _, pred_class = pred_y.max(dim=1)
                 epoch_hit += (pred_class == y).sum().item()
-                del x, y, pred_y
-                torch.cuda.empty_cache()
 
             # 結果
             if e%verbose==0 :
