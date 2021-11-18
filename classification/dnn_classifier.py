@@ -340,6 +340,9 @@ class DNNClassifier(_ClassifierBase):
                 # 正解数
                 _, pred_class = pred_y.max(dim=1)
                 epoch_hit += (pred_class == y).sum().item()
+                del x, y, pred_y
+                torch.cuda.empty_cache()
+
             # 結果
             if e%verbose==0 :
                 print('Epoch: {}'.format(e))
@@ -382,6 +385,8 @@ class DNNClassifier(_ClassifierBase):
                     # 正解数
                     _, pred_class = pred_y.max(dim=1)
                     epoch_hit += (pred_class == y).sum().item()
+                    del x, y, pred_y
+                    torch.cuda.empty_cache()
             # 結果
             if e%verbose==0 :
                 print('Test')
