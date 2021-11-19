@@ -134,7 +134,44 @@ class DNNClassifier(_ClassifierBase):
     def __del__(self) :
         del self.model, self.train_outputs, self.train_labels, self.train_losses, self.train_accs,  \
             self.test_outputs, self.test_labels, self.test_losses, self.test_accs
-        torch.cuda.empty_cache()  
+        torch.cuda.empty_cache() 
+    '''
+    Early Stopping
+    |loss(e)| - |loss(e-1)|がtolerance_loss超の場合がtolerance_e以上続いたときにTrue
+    epoch: 現在のエポック
+    loss: 現在のロス
+    tolerance_loss: ロスの増加許容範囲
+    patience_loss: ロス増加時からエポックの許容範囲
+    '''
+    def _early_stopping(self, epoch, loss, tolerance_loss=0, tolerance_e=0) :
+        # 負の値は許容しない
+        if tolerance_loss < 0 or tolerance_e < 0:
+            raise ValueError('tolerance and patience >= 0')
+        
+        # 初期化
+        if epoch==1 :
+            self._prev_loss = float('inf') # 過去のロス
+            self._end = -1 # ロス増加から数えて、終了のエポック
+        
+        # ロスの差が許容範囲内、続行
+        if (abs(loss)-abs(self._prev_loss)) <= tolerance_loss :
+            self._end = -1
+            self._prev_loss = loss
+            return False
+        # 許容範囲外
+        else :
+            self._prev_loss = loss
+            # ロス差範囲外タイミングから終了タイミングを計算
+            if self._end == -1 :
+                self._end = epoch + tolerance_e
+            # 終了タイミングで終了
+            if self._end == tolerance_e :
+                return True
+            # 続行
+            else :
+                return False              
+
+
     '''
     訓練
     train_x: 訓練データ(torch.tensor)
@@ -142,17 +179,18 @@ class DNNClassifier(_ClassifierBase):
     epoch: エポック数
     batch_size: バッチサイズ
     extra_func: モデル出力に追加で適用する関数
-    es_d_loss: Early Stoppingを実行する損失の変化量(None: 無)
+    early_stopping: Early Stoppingの有無
+    tol_loss: _early_stoppingのtolerance_lossと対応
+    tol_e: _early_stoppingのtolerance_eと対応
     keep_outputs: 出力を何エポックごとに保持するか(データ量を減らす)
     keep_losses: 損失を何エポックごとに保持するか
     keep_accs: 精度を何エポックごとに保持するか
     verbose: 何エポックごとに結果(損失と精度)を表示するか(0:出力無)
-    log_fn: 結果をlogに(None: 標準出力) ＊未実装
     to_np: 結果をnumpyに変換
     '''
     def train(self, train_x, train_y, epoch, batch_size, 
-              extra_func=None, early_stopping=None,
-              keep_outputs=1, keep_losses=1, keep_accs=1, verbose=1, log_fn=None, to_np=False) :
+              extra_func=None, early_stopping=False, tol_loss=0, tol_e=0,
+              keep_outputs=1, keep_losses=1, keep_accs=1, verbose=1, to_np=False) :
         # DataLoader
         train_data_size = train_x.size()[0]
         train_ds = TensorDataset(train_x, train_y)
@@ -190,7 +228,6 @@ class DNNClassifier(_ClassifierBase):
                 # 正解数
                 _, pred_class = pred_y.max(dim=1)
                 epoch_hit += (pred_class == y).sum().item()
-            
             # 結果
             if e%verbose==0 :
                 print('Epoch: {}'.format(e))
@@ -205,6 +242,8 @@ class DNNClassifier(_ClassifierBase):
             if e%keep_accs==0 :
                 epoch_acc = epoch_hit/train_data_size
                 self.train_accs = torch.cat((self.train_accs, torch.tensor([epoch_acc])), dim=0)
+            if self._early_stopping(epoch, epoch_loss, tolerance_loss=tol_loss, tolerance_e=tol_e) :
+                break
         self.epoch_count += epoch
         # numpyに変換するか
         if to_np :
@@ -222,12 +261,11 @@ class DNNClassifier(_ClassifierBase):
     keep_losses: 損失を保持するか(0:無 or 1:有)
     keep_accs: 精度を保持するか(0:無 or 1:有)
     verbose: 結果(損失と精度)を表示するか(0:無 or 1:有)
-    log_fn: 結果をlogに(None: 標準出力) ＊未実装
     to_np: 結果をnumpyに変換
     '''
     # テスト
     def test(self, test_x, test_y, batch_size=10, extra_func=None, 
-             keep_outputs=1, keep_losses=1, keep_accs=1, verbose=1, log_fn=None, to_np=False) :
+             keep_outputs=1, keep_losses=1, keep_accs=1, verbose=1, to_np=False) :
         # DataLoader
         test_data_size = test_x.size()[0]
         test_ds = TensorDataset(test_x, test_y)
@@ -290,6 +328,9 @@ class DNNClassifier(_ClassifierBase):
     epoch: エポック数
     batch_size: バッチサイズ
     extra_func: モデル出力に追加で適用する関数
+    early_stopping: Early Stoppingの有無
+    tol_loss: _early_stoppingのtolerance_lossと対応
+    tol_e: _early_stoppingのtolerance_eと対応
     keep_outputs: 出力を何エポックごとに保持するか(データ量を減らす)
     keep_losses: 損失を何エポックごとに保持するか
     keep_accs: 精度を何エポックごとに保持するか
@@ -298,7 +339,8 @@ class DNNClassifier(_ClassifierBase):
     to_np: 結果をnumpyに変換
     '''
     def train_test(self, train_x, train_y, test_x, test_y, epoch, batch_size, extra_func=None,
-                   keep_outputs=1, keep_losses=1, keep_accs=1, verbose=1, log_fn=None, to_np=False) :
+                   early_stopping=False, tol_loss=0, tol_e=0,
+                   keep_outputs=1, keep_losses=1, keep_accs=1, verbose=1, to_np=False) :
         # DataLoader
         train_data_size = train_x.size()[0]
         test_data_size = test_x.size()[0]
@@ -397,6 +439,10 @@ class DNNClassifier(_ClassifierBase):
             if e%keep_accs==0:
                 epoch_acc = epoch_hit/test_data_size
                 self.test_accs = torch.cat((self.test_accs, torch.tensor([epoch_acc])), dim=0)
+            # Early Stopping 判定
+            if early_stopping : 
+                if self._early_stopping(epoch, epoch_loss, tolerance_loss=tol_loss, tolerance_e=tol_e) :
+                    break
         self.epoch_count += epoch
         # numpyに変換するか
         if to_np :
