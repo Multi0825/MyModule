@@ -165,7 +165,7 @@ class DNNClassifier(_ClassifierBase):
             if self._end == -1 :
                 self._end = epoch + tolerance_e
             # 終了タイミングで終了
-            if self._end == tolerance_e :
+            if self._end == epoch :
                 return True
             # 続行
             else :
@@ -242,8 +242,10 @@ class DNNClassifier(_ClassifierBase):
             if e%keep_accs==0 :
                 epoch_acc = epoch_hit/train_data_size
                 self.train_accs = torch.cat((self.train_accs, torch.tensor([epoch_acc])), dim=0)
-            if self._early_stopping(epoch, epoch_loss, tolerance_loss=tol_loss, tolerance_e=tol_e) :
-                break
+            # Early Stopping 判定
+            if early_stopping : 
+                if self._early_stopping(epoch, epoch_loss, tolerance_loss=tol_loss, tolerance_e=tol_e) :
+                    break
         self.epoch_count += epoch
         # numpyに変換するか
         if to_np :
