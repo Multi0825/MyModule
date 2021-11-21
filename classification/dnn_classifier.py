@@ -7,7 +7,7 @@ from logging import getLogger, Formatter, StreamHandler, FileHandler
 import torch
 import torch.nn as nn
 from torch import optim as optimizer
-from torch.utils.data import TensorDataset, DataLoader, Subset
+from torch.utils.data import TensorDataset, DataLoader
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import confusion_matrix
 from .classifier_base import _ClassifierBase
