@@ -48,7 +48,9 @@ class Deep4Net(nn.Module) :
         split_first_layer=True,
         batch_norm=True,
         batch_norm_alpha=0.1,
-        stride_before_pool=False) :
+        stride_before_pool=False, 
+        init_seed=None # 初期化シード(追加)
+        ) :
         super().__init__()
 
         if final_conv_length == "auto":
@@ -104,11 +106,10 @@ class Deep4Net(nn.Module) :
             layers['pool_nonlin_{:d}'.format(i+2)] = Expression(later_pool_nonlin) # Layer4.[1-3].5
             n_filters_before = n_filters[i] 
 
-        # self.add_module('drop_classifier', nn.Dropout(p=self.drop_prob))
-        # self.eval() # いらなそうだから無効
-        
+        # self.add_module('drop_classifier', nn.Dropout(p=self.drop_prob)
         # Fig1 Classification Layer
         if final_conv_length == "auto": # not Default
+            self.eval()
             out = self(bd.np_to_th(np.ones((1, in_chans, input_window_samples, 1),dtype=np.float32)))
             n_out_time = out.cpu().data.numpy().shape[2]
             final_conv_length = n_out_time
@@ -118,47 +119,47 @@ class Deep4Net(nn.Module) :
         
         self.layers = nn.ModuleDict(layers)
 
-        # 重みの初期化か？
-        # Initialization, xavier is same as in our paper...
-        # was default from lasagne
         
-        # Xavier: torchの初期化を司る何か
-        # lasagneは、Theanoのニューラルネットワークを構築し、訓練するための軽量ライブラリ
-        
-        # xavier_uniform:
-        # Fills the input Tensor with values drawn from the uniform distribution u(a,b)
-        # xavier_constant_:
-        # Fills the input Tensor with the value val.
-        init.xavier_uniform_(self.layers['conv_time'].weight, gain=1) 
-        # maybe no bias in case of no split layer and batch norm
-        if split_first_layer or (not batch_norm):
-            init.constant_(self.layers['conv_time'].bias, 0) 
-        if split_first_layer:
-            init.xavier_uniform_(self.layers['conv_spat'].weight, gain=1)
-            if not batch_norm:
-                init.constant_(self.layers['conv_spat.bias'], 0)
-        if batch_norm:
-            init.constant_(self.layers['bnorm'].weight, 1)
-            init.constant_(self.layers['bnorm'].bias, 0)
-        
-        param_dict = dict(list(self.named_parameters()))
-        for block_nr in range(2, 5):
-            conv_weight = param_dict["layers.conv_{:d}.weight".format(block_nr)]
-            init.xavier_uniform_(conv_weight, gain=1)
-            if not batch_norm:
-                conv_bias = param_dict["layers.conv_{:d}.bias".format(block_nr)]
-                init.constant_(conv_bias, 0)
-            else:
-                bnorm_weight = param_dict["layers.bnorm_{:d}.weight".format(block_nr)]
-                bnorm_bias = param_dict["layers.bnorm_{:d}.bias".format(block_nr)]
-                init.constant_(bnorm_weight, 1)
-                init.constant_(bnorm_bias, 0)
+        if init_seed is not None :
+            torch.random.manual_seed(init_seed) # <-これを追加したら初期パラメータ固定出来た
+            # 重みの初期化、ただし上記の追加しないと機能していなかった
+            # Initialization, xavier is same as in our paper...
+            # was default from lasagne
+            
+            # Xavier: torchの初期化を司る何か
+            # lasagneは、Theanoのニューラルネットワークを構築し、訓練するための軽量ライブラリ
+            
+            # xavier_uniform:
+            # Fills the input Tensor with values drawn from the uniform distribution u(a,b)
+            # xavier_constant_:
+            # Fills the input Tensor with the value val.
+            init.xavier_uniform_(self.layers['conv_time'].weight, gain=1) 
+            # maybe no bias in case of no split layer and batch norm
+            if split_first_layer or (not batch_norm):
+                init.constant_(self.layers['conv_time'].bias, 0) 
+            if split_first_layer:
+                init.xavier_uniform_(self.layers['conv_spat'].weight, gain=1)
+                if not batch_norm:
+                    init.constant_(self.layers['conv_spat.bias'], 0)
+            if batch_norm:
+                init.constant_(self.layers['bnorm'].weight, 1)
+                init.constant_(self.layers['bnorm'].bias, 0)
+            
+            param_dict = dict(list(self.named_parameters()))
+            for block_nr in range(2, 5):
+                conv_weight = param_dict["layers.conv_{:d}.weight".format(block_nr)]
+                init.xavier_uniform_(conv_weight, gain=1)
+                if not batch_norm:
+                    conv_bias = param_dict["layers.conv_{:d}.bias".format(block_nr)]
+                    init.constant_(conv_bias, 0)
+                else:
+                    bnorm_weight = param_dict["layers.bnorm_{:d}.weight".format(block_nr)]
+                    bnorm_bias = param_dict["layers.bnorm_{:d}.bias".format(block_nr)]
+                    init.constant_(bnorm_weight, 1)
+                    init.constant_(bnorm_bias, 0)
 
-        init.xavier_uniform_(self.layers['conv_classifier'].weight, gain=1)
-        init.constant_(self.layers['conv_classifier'].bias, 0)
-
-        # Start in eval mode
-        self.eval() # なぜもう1回するのか
+            init.xavier_uniform_(self.layers['conv_classifier'].weight, gain=1)
+            init.constant_(self.layers['conv_classifier'].bias, 0)
 
     # x: Batch x Ch x Value x 1
     def forward(self, x, size_check=False) :
@@ -167,5 +168,4 @@ class Deep4Net(nn.Module) :
             if size_check :
                 print('{}:{}'.format(name, x.size()))
         return x
-
 
