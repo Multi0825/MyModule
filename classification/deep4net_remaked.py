@@ -1,4 +1,4 @@
-# Pytorchのnn.Sequential形式をnn.Module形式にしたい
+# Pytorchのnn.Sequential形式をnn.Module形式にした
 ##############################
 # BraindecodeDeep4Netのソースでインポートされたもの
 from braindecode.models.modules import Expression
@@ -18,8 +18,8 @@ from braindecode.util import np_to_var
 
 # self.add_moduleは全部self.moduleに変換
 # 一部省略
+# 初期パラメータ固定？が機能してなかったため、修正
 class Deep4Net(nn.Module) : 
-    # self.se
     def __init__(self,
         in_chans, # 電極数
         n_classes, # クラス数
