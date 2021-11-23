@@ -168,24 +168,4 @@ class Deep4Net(nn.Module) :
                 print('{}:{}'.format(name, x.size()))
         return x
 
-data = torch.randn((100, 14, 1280, 1))
-a = Deep4Net(14, 3, None, 1)
-out = a(data, size_check=True)
-print(out[1, 0, :])
-print(out[1, 1, :])
-print(out[1, 2, :])
-# print(out.size()) # 100, in_classes, 11
 
-# b = Deep4Net_Original(2,2,None,'auto')
-# print(a.parameters())
-'''
-data = torch.zeros((100, 14, 1280, 1)) # x
-data = torch.zeros((100, 14, 1, 1280)) # x
-data = torch.zeros((100, 1, 1280, 14))
-c = nn.Conv2d(in_channels=1, out_channels=25, kernel_size=(10, 1), stride=1)
-d = c(data)
-print(d.size()) # 100, 25, 1271, 14
-e = nn.Conv2d(in_channels=25, out_channels=25, kernel_size=(1,14), stride=(1,1),bias= not True) 
-f = e(d)
-print(f.size()) # 100, 25, 1271, 1
-'''
