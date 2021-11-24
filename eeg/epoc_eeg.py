@@ -42,7 +42,7 @@ class EpocEEG():
             self.epoch_labels = [0 for e in range(self.n_epoch)]
             self.labels = ['0']
         # エポックの範囲(サンプル番号)
-        self.epoch_ranges = np.zeros((self.n_epoch, 2)) # エポックの範囲(開始点, 終了点＋１)
+        self.epoch_ranges = np.zeros((self.n_epoch, 2)) # エポックの範囲(開始点, 終了点)
         for e in range(self.n_epoch) :
             self.epoch_ranges[e,0] = df[df['Epoch']==e].index[0]
             self.epoch_ranges[e,1] = df[df['Epoch']==e].index[-1] 
