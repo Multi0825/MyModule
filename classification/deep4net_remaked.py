@@ -1,15 +1,13 @@
 # Pytorchのnn.Sequential形式をnn.Module形式にした
 ##############################
 # BraindecodeDeep4Netのソースでインポートされたもの
-from braindecode.models.modules import Expression
 import numpy as np
 import torch
 from torch import nn
-import torch.nn.functional as F
 from torch.nn import init
 from torch.nn.functional import elu
 import modules_d4n_remaked as bd
-from bd_deep4net import Deep4Net as Deep4Net_Original 
+
 '''
 from braindecode.models.modules import Expression, AvgPool2dWithConv, Ensure4d
 from braindecode.models.functions import identity, transpose_time_to_spat, squeeze_final_output
@@ -85,9 +83,9 @@ class Deep4Net(nn.Module) :
         
         if batch_norm: # Default
             layers['bnorm'] = nn.BatchNorm2d(n_filters_conv,momentum=batch_norm_alpha,affine=True,eps=1e-5) # Layer3.0
-        layers['conv_nonlin'] = Expression(first_nonlin) # Layer3.1
+        layers['conv_nonlin'] = bd.Expression(first_nonlin) # Layer3.1
         layers['pool'] = first_pool_class(kernel_size=(pool_time_length,1),stride=(pool_stride,1)) # Layer3.2
-        layers['pool_nonlin'] = Expression(first_pool_nonlin) # Layer3.3
+        layers['pool_nonlin'] = bd.Expression(first_pool_nonlin) # Layer3.3
 
         # # Fig1 Conv Pool Block2,3,4
         # add_conv_pool_blockを分解(suffixができない)
@@ -101,9 +99,9 @@ class Deep4Net(nn.Module) :
             if batch_norm:
                 layers['bnorm_{:d}'.format(i+2)] = nn.BatchNorm2d(n_filters[i],momentum=batch_norm_alpha,
                                                                 affine=True,eps=1e-5) # Layer4.[1-3].(2.5)
-            layers['nonlin_{:d}'.format(i+2)] = Expression(later_nonlin) # Layer4.[1-3].3
+            layers['nonlin_{:d}'.format(i+2)] = bd.Expression(later_nonlin) # Layer4.[1-3].3
             layers['pool_{:d}'.format(i+2)] = later_pool_class(kernel_size=(pool_time_length, 1),stride=(pool_stride, 1)) # Layer4.[1-3].4
-            layers['pool_nonlin_{:d}'.format(i+2)] = Expression(later_pool_nonlin) # Layer4.[1-3].5
+            layers['pool_nonlin_{:d}'.format(i+2)] = bd.Expression(later_pool_nonlin) # Layer4.[1-3].5
             n_filters_before = n_filters[i] 
 
         # self.add_module('drop_classifier', nn.Dropout(p=self.drop_prob)
@@ -115,7 +113,7 @@ class Deep4Net(nn.Module) :
             final_conv_length = n_out_time
         layers['conv_classifier'] = nn.Conv2d(n_filters[-1],n_classes,(final_conv_length, 1),bias=True) # Layer5.1
         layers['softmax'] = nn.LogSoftmax(dim=1) # Layer5.2
-        layers['squeeze'] = Expression(bd.squeeze_final_output) # Layer5.3
+        layers['squeeze'] = bd.Expression(bd.squeeze_final_output) # Layer5.3
         
         self.layers = nn.ModuleDict(layers)
 
