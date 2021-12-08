@@ -96,10 +96,18 @@ def stats_features2(data, axis=2) :
     return np.array(f)
 
 # FFTにより振幅スペクトルを計算
-# data: dim=1~3,(ex. n_win * n_ch * n_sample)
-# min_dim, max_dim: min_dim~max_dim+1次元まで使用(max_dim=None: max_dim) 
-def amp_spectrum(data, min_dim=1, max_dim=None) :
-    f_fft = fft.fft(data, n=data.shape[data.ndim-1], axis=data.ndim-1)
+# *メモ
+# データ点の数は2のべき乗であるべき(らしい)
+# 横軸はサンプリング周波数の半分が最大値(左右対称)
+# サンプリング周波数sfreqHz, データ長n点では1/(n/sfreq)Hz刻み
+# scipy.fftではindex0は直流成分(使えない)
+# 256点(0~255)あった場合,[1]=[255(-1)],[127]=[129], [128]は1つ(基本的には1~n/2) 
+# data: np.array, dim=1~3,(ex. n_win * n_ch * n_value)
+# min_dim, max_dim: min_dim~max_dim次元まで使用 
+def amp_spectrum(data, n=None, min_dim=1, max_dim=None) :
+    n = data.shape[data.ndim-1] if n is None else n
+    max_dim = n/2 if max_dim is None else max_dim 
+    f_fft = fft.fft(data, n=n, axis=data.ndim-1)
     if data.ndim==3 :
         f_fft = f_fft[:,:,min_dim:max_dim+1]
     elif data.ndim==2 :
