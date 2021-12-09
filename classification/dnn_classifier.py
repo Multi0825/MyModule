@@ -296,7 +296,7 @@ class DNNClassifier(_ClassifierBase):
                 epoch_labels = torch.cat((epoch_labels, y.to('cpu')), dim=0)
                 # 損失の計算
                 loss = self.loss_func(pred_y, y) 
-                self.test_losses[0] = loss.item()
+                epoch_loss += loss.item()
                 # 正解数
                 _, pred_class = pred_y.max(dim=1)
                 hit = (pred_class == y).sum().item()
