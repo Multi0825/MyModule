@@ -106,7 +106,7 @@ def stats_features2(data, axis=2) :
 # min_dim, max_dim: min_dim~max_dim次元まで使用 
 def amp_spectrum(data, n=None, min_dim=1, max_dim=None) :
     n = data.shape[data.ndim-1] if n is None else n
-    max_dim = n/2 if max_dim is None else max_dim 
+    max_dim = n//2 if max_dim is None else max_dim 
     f_fft = fft.fft(data, n=n, axis=data.ndim-1)
     if data.ndim==3 :
         f_fft = f_fft[:,:,min_dim:max_dim+1]
