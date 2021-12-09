@@ -299,8 +299,7 @@ class DNNClassifier(_ClassifierBase):
                 epoch_loss += loss.item()
                 # 正解数
                 _, pred_class = pred_y.max(dim=1)
-                hit = (pred_class == y).sum().item()
-        self.test_accs[0] = hit/test_data_size
+                epoch_hit += (pred_class == y).sum().item()
         
         # 出力
         if verbose :
