@@ -303,8 +303,8 @@ class DNNClassifier(_ClassifierBase):
         
         # 出力
         if verbose :
-            print('Loss: {}'.format(self.test_losses[0].item()))
-            print('Acc: {}'.format(self.test_accs[0].item()))
+            print('Epoch Loss: {}'.format(epoch_loss))
+            print('Epoch Acc: {}'.format(epoch_hit/test_data_size))
         # 結果保存
         if keep_outputs :
             self.test_outputs = torch.cat((self.test_outputs,epoch_outputs.unsqueeze(dim=0)), dim=0)
