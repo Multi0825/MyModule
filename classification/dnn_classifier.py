@@ -8,7 +8,7 @@ from torch import optim as optimizer
 from torch.utils.data import TensorDataset, DataLoader
 from sklearn.metrics import confusion_matrix
 from .classifier_base import _ClassifierBase
-import utils 
+from utils import torch2np 
 
 
 # DNN分類器
@@ -166,7 +166,7 @@ class DNNClassifier(_ClassifierBase):
         self.epoch_count += epoch
         # numpyに変換するか
         if to_np :
-            return utils.torch2np(self.train_losses), utils.torch2np(self.train_accs)
+            return torch2np(self.train_losses), torch2np(self.train_accs)
         else :
             return self.train_losses, self.train_accs
 
@@ -233,7 +233,7 @@ class DNNClassifier(_ClassifierBase):
             self.test_accs = torch.cat((self.test_accs, torch.tensor([epoch_acc])), dim=0)
         # numpyに変換するか
         if to_np :
-            return utils.torch2np(self.test_losses), utils.torch2np(self.test_accs)
+            return torch2np(self.test_losses), torch2np(self.test_accs)
         else :
             return self.test_losses, self.test_accs
 
@@ -364,8 +364,8 @@ class DNNClassifier(_ClassifierBase):
         self.epoch_count += epoch
         # numpyに変換するか
         if to_np :
-            return utils.torch2np(self.train_losses), utils.torch2np(self.train_accs), \
-                   utils.torch2np(self.test_losses), utils.torch2np(self.test_accs) 
+            return torch2np(self.train_losses), torch2np(self.train_accs), \
+                   torch2np(self.test_losses), torch2np(self.test_accs) 
         else :
             return self.train_losses, self.train_accs, \
                    self.test_losses, self.test_accs
