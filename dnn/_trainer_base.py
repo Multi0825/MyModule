@@ -1,5 +1,5 @@
-# 分類器
-class _ClassifierBase() :
+# モデル訓練用基底クラス
+class _TrainerBase() :
     def __init__(self) :
         pass
     def train(self) :

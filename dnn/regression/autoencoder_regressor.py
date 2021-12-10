@@ -1,0 +1,400 @@
+# ハイパーパラメータ等を入力し、オートエンコーダによる回帰(訓練、検証)
+import matplotlib.pyplot as plt
+import logging
+from logging import getLogger, Formatter, StreamHandler, FileHandler
+import torch
+import torch.nn as nn
+from torch import optim as optimizer
+from torch.utils.data import TensorDataset, DataLoader
+from .._trainer_base import _TrainerBase
+from ..utils import torch2np
+
+# DNN回帰学習器
+class DNNRegressor(_TrainerBase):
+    '''
+    model: モデルクラス
+    model: モデル引数(辞書型)
+    loss_func: 損失関数
+    loss_args: 損失関数引数(辞書型)
+    optim: 最適化関数
+    optim_args: 最適化関数引数(辞書型、model.parameters()以外)
+    init_seed: モデルのパラメータの初期化のシード(ただここでシード指定しても、いたる箇所で乱数の影響があるため固定は完全同一は無理)
+    device: 使用デバイス
+    '''
+    def __init__(self, model, model_args={}, 
+                 loss_func=nn.MSELoss, loss_args={}, 
+                 optim=optimizer.Adam, optim_args={}, init_seed=None, device='cuda:0') -> None:
+        if init_seed is not None :
+            torch.manual_seed(init_seed)
+        self.device = device if torch.cuda.is_available() else 'cpu'
+        self.model = model(**model_args) # モデル
+        self.loss_func = loss_func(**loss_args) # 損失関数
+        self.optim = optim(self.model.parameters(), **optim_args) # 最適化関数
+        # 訓練
+        self.epoch_count = 0
+        self.train_outputs = torch.tensor([]) # 各エポックの出力(Epoch x n_data x n_cls)
+        self.train_labels = torch.tensor([]) # 各エポックの出力に対応するラベル(Epoch x n_data)
+        self.train_losses = torch.tensor([]) # 各エポックの損失
+        # テスト
+        self.test_outputs = torch.tensor([]) # 各エポックの出力
+        self.test_labels = torch.tensor([]) # 各エポックの出力に対応するラベル
+        self.test_losses = torch.tensor([]) # 各エポックの損失
+    '''
+    デストラクタ
+    
+    GPUを解放できるように
+    '''
+    def __del__(self) :
+        del self.model, self.train_outputs, self.train_labels, self.train_losses,  \
+            self.test_outputs, self.test_labels, self.test_losses
+        torch.cuda.empty_cache() 
+    '''
+    Early Stopping
+    |loss(e)| - |loss(e-1)|がtolerance_loss超の場合がtolerance_e以上続いたときにTrue
+    epoch: 現在のエポック
+    loss: 現在のロス
+    tolerance_loss: ロスの増加許容範囲
+    patience_loss: ロス増加時からエポックの許容範囲
+    '''
+    def _early_stopping(self, epoch, loss, tolerance_loss=0, tolerance_e=0) :
+        # 負の値は許容しない
+        if tolerance_loss < 0 or tolerance_e < 0:
+            raise ValueError('tolerance and patience >= 0')
+        
+        # 初期化
+        if epoch==1 :
+            self._prev_loss = float('inf') # 過去のロス
+            self._end = -1 # ロス増加から数えて、終了のエポック
+        
+        # ロスの差が許容範囲内、続行
+        if (abs(loss)-abs(self._prev_loss)) <= tolerance_loss :
+            self._end = -1
+            self._prev_loss = loss
+            return False
+        # 許容範囲外
+        else :
+            self._prev_loss = loss
+            # ロス差範囲外タイミングから終了タイミングを計算
+            if self._end == -1 :
+                self._end = epoch + tolerance_e
+            # 終了タイミングで終了
+            if self._end == epoch :
+                return True
+            # 続行
+            else :
+                return False              
+
+
+    '''
+    訓練
+    train_x: 訓練データ(torch.tensor)
+    train_y: 訓練ラベル(torch.tensor)
+    epoch: エポック数
+    batch_size: バッチサイズ
+    extra_func: モデル出力に追加で適用する関数
+    early_stopping: Early Stoppingの有無
+    tol_loss: _early_stoppingのtolerance_lossと対応
+    tol_e: _early_stoppingのtolerance_eと対応
+    keep_outputs: 出力を何エポックごとに保持するか(データ量を減らす)
+    keep_losses: 損失を何エポックごとに保持するか
+    verbose: 何エポックごとに結果(損失)を表示するか(0:出力無)
+    to_np: 結果をnumpyに変換
+    '''
+    def train(self, train_x, train_y, epoch, batch_size, 
+              extra_func=None, early_stopping=False, tol_loss=0, tol_e=0,
+              keep_outputs=1, keep_losses=1, verbose=1, to_np=False) :
+        # DataLoader
+        train_data_size = train_x.size()[0]
+        train_ds = TensorDataset(train_x, train_y)
+        # shuffleはシード値指定できないから無し or 手動
+        train_loader = DataLoader(train_ds, batch_size=batch_size)
+
+        self.model = self.model.to(self.device) # GPU使用の場合、転送
+        self.model.train()
+        for e in range(1, epoch+1):
+            epoch_outputs = torch.tensor([])
+            epoch_labels = torch.tensor([])
+            epoch_loss = 0
+            for x, y in train_loader :
+                # GPU使用の場合、転送
+                x = x.to(self.device)
+                y = y.to(self.device)
+                # 出力
+                pred_y = self.model(x)
+                # 追加処理
+                if extra_func is not None :
+                    pred_y = extra_func(pred_y)
+                # 出力、ラベル保存処理
+                epoch_outputs = torch.cat((epoch_outputs, pred_y.to('cpu')),dim=0)
+                epoch_labels = torch.cat((epoch_labels, y.to('cpu')), dim=0)
+                # 勾配の初期化
+                self.optim.zero_grad()
+                # 損失の計算
+                loss = self.loss_func(pred_y, y)
+                epoch_loss += loss.item()
+                # 勾配の計算(誤差逆伝播) 
+                loss.backward()
+                # 重みの更新
+                self.optim.step()
+
+            # 結果
+            if e%verbose==0 :
+                print('Epoch: {}'.format(e))
+                print('Epoch Loss: {}'.format(epoch_loss))
+            # 結果保存
+            if e%keep_outputs == 0 :
+                self.train_outputs = torch.cat((self.train_outputs,epoch_outputs.unsqueeze(dim=0)), dim=0)
+                self.train_labels = torch.cat((self.train_labels, epoch_labels.unsqueeze(dim=0)), dim=0)
+            if e%keep_losses == 0 :
+                self.train_losses = torch.cat((self.train_losses, torch.tensor([epoch_loss])), dim=0)
+
+            # Early Stopping 判定
+            if early_stopping : 
+                if self._early_stopping(epoch, epoch_loss, tolerance_loss=tol_loss, tolerance_e=tol_e) :
+                    break
+        self.epoch_count += epoch
+        # numpyに変換するか
+        if to_np :
+            return torch2np(self.train_losses)
+        else :
+            return self.train_losses
+
+    '''
+    テスト
+    test_x: テストデータ(torch.tensor)
+    test_y: テストラベル(torch.tensor)
+    batch_size: バッチサイズ
+    extra_func: モデル出力に追加で適用する関数
+    keep_outputs: 出力を保持するか(0:無 or 1:有)
+    keep_losses: 損失を保持するか(0:無 or 1:有)
+    verbose: 結果(損失)を表示するか(0:無 or 1:有)
+    to_np: 結果をnumpyに変換
+    '''
+    # テスト
+    def test(self, test_x, test_y, batch_size=10, extra_func=None, 
+             keep_outputs=1, keep_losses=1, verbose=1, to_np=False) :
+        # DataLoader
+        test_data_size = test_x.size()[0]
+        test_ds = TensorDataset(test_x, test_y)
+        # shuffleはシード値指定できないから無し or 手動
+        test_loader = DataLoader(test_ds, batch_size=batch_size)
+
+        self.model = self.model.to(self.device) # GPU使用の場合、転送
+        self.model.eval()        
+        epoch_outputs = torch.tensor([])
+        epoch_labels = torch.tensor([])
+        epoch_loss = 0
+        for x, y in test_loader :
+            # 勾配計算をしない場合
+            with torch.no_grad() :
+                # GPU使用の場合、転送
+                x = x.to(self.device)
+                y = y.to(self.device)
+                # 出力
+                pred_y = self.model(x)
+                # 追加処理
+                if extra_func is not None :
+                    pred_y = extra_func(pred_y)
+                # 出力、ラベル保存処理
+                epoch_outputs = torch.cat((epoch_outputs, pred_y.to('cpu')),dim=0)
+                epoch_labels = torch.cat((epoch_labels, y.to('cpu')), dim=0)
+                # 損失の計算
+                loss = self.loss_func(pred_y, y) 
+                epoch_loss += loss.item()
+
+        # 出力
+        if verbose :
+            print('Epoch Loss: {}'.format(epoch_loss))
+        # 結果保存
+        if keep_outputs :
+            self.test_outputs = torch.cat((self.test_outputs,epoch_outputs.unsqueeze(dim=0)), dim=0)
+            self.test_labels = torch.cat((self.test_labels, epoch_labels.unsqueeze(dim=0)), dim=0)
+        if keep_losses :
+            self.test_losses = torch.cat((self.test_losses, torch.tensor([epoch_loss])), dim=0)
+        
+        # numpyに変換するか
+        if to_np :
+            return torch2np(self.test_losses)
+        else :
+            return self.test_losses
+
+    '''
+    エポック毎に訓練+テスト
+    train_x: 訓練データ(torch.tensor)
+    train_y: 訓練ラベル(torch.tensor)
+    test_x: テストデータ(torch.tensor)
+    test_y: テストラベル(torch.tensor)
+    epoch: エポック数
+    batch_size: バッチサイズ
+    extra_func: モデル出力に追加で適用する関数
+    early_stopping: Early Stoppingの有無
+    tol_loss: _early_stoppingのtolerance_lossと対応
+    tol_e: _early_stoppingのtolerance_eと対応
+    keep_outputs: 出力を何エポックごとに保持するか(データ量を減らす)
+    keep_losses: 損失を何エポックごとに保持するか
+    verbose: 何エポックごとに結果(損失と精度)を表示するか(0:出力無し)
+    to_np: 結果をnumpyに変換
+    '''
+    def train_test(self, train_x, train_y, test_x, test_y, epoch, batch_size, extra_func=None,
+                   early_stopping=False, tol_loss=0, tol_e=0,
+                   keep_outputs=1, keep_losses=1, verbose=1, to_np=False) :
+        # DataLoader
+        train_data_size = train_x.size()[0]
+        test_data_size = test_x.size()[0]
+        train_ds = TensorDataset(train_x, train_y)
+        test_ds = TensorDataset(test_x, test_y)
+        # shuffleはシード値指定できないから無し or 手動
+        train_loader = DataLoader(train_ds, batch_size=batch_size, shuffle=False)
+        test_loader = DataLoader(test_ds, batch_size=batch_size, shuffle=False)
+        # GPU使用の場合、転送
+        self.model = self.model.to(self.device) # GPU使用の場合、転送
+        for e in range(1, epoch+1):
+            # 訓練
+            self.model.train()
+            epoch_outputs = torch.tensor([])
+            epoch_labels = torch.tensor([])
+            epoch_loss = 0
+            for x, y in train_loader :
+                # GPU使用の場合、転送
+                x = x.to(self.device)
+                y = y.to(self.device)
+                # 出力
+                pred_y = self.model(x)
+                # 追加処理
+                if extra_func is not None :
+                    pred_y = extra_func(pred_y)
+                # 出力、ラベル保存処理
+                epoch_outputs = torch.cat((epoch_outputs, pred_y.to('cpu')),dim=0)
+                epoch_labels = torch.cat((epoch_labels, y.to('cpu')), dim=0)
+                # 勾配の初期化
+                self.optim.zero_grad()
+                # 損失の計算
+                loss = self.loss_func(pred_y, y) 
+                epoch_loss += loss.item()
+                # 勾配の計算(誤差逆伝播) 
+                loss.backward()
+                # 重みの更新
+                self.optim.step()
+
+            # 結果
+            if e%verbose==0 :
+                print('Epoch: {}'.format(e))
+                print('Training')
+                print('Epoch Loss: {}'.format(epoch_loss))
+            # 結果保存
+            if e%keep_outputs == 0 :
+                self.train_outputs = torch.cat((self.train_outputs,epoch_outputs.unsqueeze(dim=0)), dim=0)
+                self.train_labels = torch.cat((self.train_labels, epoch_labels.unsqueeze(dim=0)), dim=0)
+            if e%keep_losses == 0 :
+                self.train_losses = torch.cat((self.train_losses, torch.tensor([epoch_loss])), dim=0)
+            
+            # テスト
+            self.model.eval()
+            epoch_outputs = torch.tensor([])
+            epoch_labels = torch.tensor([])
+            epoch_loss = 0
+            for x, y in test_loader :
+                # 勾配計算をしない場合
+                with torch.no_grad() :
+                    # GPU使用の場合、転送
+                    x = x.to(self.device)
+                    y = y.to(self.device)
+                    # 出力
+                    pred_y = self.model(x)
+                    # 追加処理
+                    if extra_func is not None :
+                        pred_y = extra_func(pred_y)
+                    # 出力、ラベル保存処理
+                    epoch_outputs = torch.cat((epoch_outputs, pred_y.to('cpu')),dim=0)
+                    epoch_labels = torch.cat((epoch_labels, y.to('cpu')), dim=0)
+                    # 損失の計算
+                    loss = self.loss_func(pred_y, y) 
+                    epoch_loss += loss.item()
+            # 結果
+            if e%verbose==0 :
+                print('Test')
+                print('Epoch Loss: {}'.format(epoch_loss))
+
+            # 結果保存
+            if e%keep_outputs == 0 :
+                self.test_outputs = torch.cat((self.test_outputs,epoch_outputs.unsqueeze(dim=0)), dim=0)
+                self.test_labels = torch.cat((self.test_labels, epoch_labels.unsqueeze(dim=0)), dim=0)
+            if e%keep_losses == 0 :
+                self.test_losses = torch.cat((self.test_losses, torch.tensor([epoch_loss])), dim=0)
+
+            # Early Stopping 判定
+            if early_stopping : 
+                if self._early_stopping(epoch, epoch_loss, tolerance_loss=tol_loss, tolerance_e=tol_e) :
+                    break
+        self.epoch_count += epoch
+        # numpyに変換するか
+        if to_np :
+            return torch2np(self.train_losses), \
+                   torch2np(self.test_losses) 
+        else :
+            return self.train_losses, \
+                   self.test_losses
+    
+    # モデルのパラメータ保存
+    def save_model(self, model_fn) -> None:
+        torch.save(self.model.state_dict(), model_fn)
+
+    # モデルのパラメータ読み込み
+    # 要確認 パラメータをロードした後、optim(model.parameters())を再生成する必要はないのか
+    def load_model(self, model_fn) -> None:
+        self.model.load_state_dict(torch.load(model_fn))
+
+    # テスト結果を確認
+    def outputs_test_results(self, log_fn=None, stream=True) :
+        pass
+        # logger = getLogger('Test Results')
+        # logger.setLevel(logging.DEBUG)
+        # if stream :
+        #     s_handler = StreamHandler()
+        #     s_handler.setLevel(logging.INFO)
+        #     logger.addHandler(s_handler)
+        # if log_fn is not None :
+        #     f_handler = FileHandler(log_fn, 'w')
+        #     f_handler.setLevel(logging.DEBUG)
+        #     logger.addHandler(f_handler)
+        #     # 時刻とファイル名をファイル出力のみに追加
+        #     f_handler.setFormatter(Formatter('%(asctime)s-%(filename)s')) 
+        #     logger.debug('')
+        #     f_handler.setFormatter(Formatter())
+        
+        # logger.debug('Test Results')
+        # n_outputs = self.test_labels.size(0)
+        # for no in range(n_outputs) :
+        #     epoch_outputs = self.test_outputs[no]
+        #     _, out2cls = epoch_outputs.max(dim=1) # 出力をクラスに変換
+        #     epoch_labels = self.test_labels[no].to(torch.int)
+        #     classes = torch.unique(epoch_labels).tolist() # 重複無しクラスリスト
+        #     cls_counts = sorted({c:(out2cls==c).sum().item() for c in classes}.items()) # 出力クラス出現回数
+        #     c_m = confusion_matrix(epoch_labels, out2cls) # 混同行列
+        #     logger.info(\
+        #     'No.{}\n'.format(no) + \
+        #     'Pred :{}\n'.format(out2cls.tolist()) + \
+        #     'True :{}\n'.format(epoch_labels.tolist()) + \
+        #     'Class: {}\n'.format(cls_counts) + \
+        #     'Acc: {}\n'.format(self.test_accs[no].item()) + \
+        #     'Conf Matrix(T\\P): \n' + \
+        #     '{}\n'.format(c_m) + \
+        #     'Model Outputs: \n' + \
+        #     '{}\n'.format(epoch_outputs.tolist()) + \
+        #     'Total Avg: {}\n'.format(epoch_outputs.mean()) + \
+        #     'Class Avg: {}\n'.format([epoch_outputs[:,i].mean().item() for i in range(len(classes))]) + \
+        #     'Total Max: {}\n'.format(epoch_outputs.max()) + \
+        #     'Class Max: {}\n'.format([epoch_outputs[:,i].max().item() for i in range(len(classes))]) + \
+        #     'Total Min: {}\n'.format(epoch_outputs.min()) + \
+        #     'Class Min: {}\n'.format([epoch_outputs[:,i].min().item() for i in range(len(classes))]) + \
+        #     '\n')
+        # if stream :
+        #     logger.removeHandler(s_handler)
+        # if log_fn is not None :
+        #     logger.removeHandler(f_handler)
+        
+
+
+
+
+        
