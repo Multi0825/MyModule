@@ -32,13 +32,14 @@ class DNNRegressor(_TrainerBase):
         self.optim = optim(self.model.parameters(), **optim_args) # 最適化関数
         # 訓練
         self.epoch_count = 0
-        self.train_outputs = torch.tensor([]) # 各エポックの出力(Epoch x n_data x n_cls)
-        self.train_labels = torch.tensor([]) # 各エポックの出力に対応するラベル(Epoch x n_data)
+        self.train_outputs = torch.tensor([]) # 各エポックの出力
+        self.train_labels = torch.tensor([]) # 各エポックの出力に対応するラベル
         self.train_losses = torch.tensor([]) # 各エポックの損失
         # テスト
         self.test_outputs = torch.tensor([]) # 各エポックの出力
         self.test_labels = torch.tensor([]) # 各エポックの出力に対応するラベル
         self.test_losses = torch.tensor([]) # 各エポックの損失
+    
     '''
     デストラクタ
     
@@ -48,6 +49,7 @@ class DNNRegressor(_TrainerBase):
         del self.model, self.train_outputs, self.train_labels, self.train_losses,  \
             self.test_outputs, self.test_labels, self.test_losses
         torch.cuda.empty_cache() 
+    
     '''
     Early Stopping
     |loss(e)| - |loss(e-1)|がtolerance_loss超の場合がtolerance_e以上続いたときにTrue
@@ -83,7 +85,6 @@ class DNNRegressor(_TrainerBase):
             # 続行
             else :
                 return False              
-
 
     '''
     訓練

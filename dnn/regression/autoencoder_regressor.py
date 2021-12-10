@@ -1,4 +1,9 @@
-# ハイパーパラメータ等を入力し、オートエンコーダによる回帰(訓練、検証)
+# オートエンコーダによる回帰(訓練、検証)
+# DNN Regressorに機能を追加
+# ・Encoderの途中出力も保存可能！
+# ・Encoder＋分類器に変形可能！
+# ・分類器のみの学習可能！
+
 import matplotlib.pyplot as plt
 import logging
 from logging import getLogger, Formatter, StreamHandler, FileHandler
@@ -6,11 +11,11 @@ import torch
 import torch.nn as nn
 from torch import optim as optimizer
 from torch.utils.data import TensorDataset, DataLoader
-from .._trainer_base import _TrainerBase
+from .dnn_regressor import DNNRegressor
 from ..utils import torch2np
 
-# DNN回帰学習器
-class DNNRegressor(_TrainerBase):
+# AutoEncoder回帰学習器
+class AutoEncoderRegressor(DNNRegressor):
     '''
     model: モデルクラス
     model: モデル引数(辞書型)
@@ -21,74 +26,37 @@ class DNNRegressor(_TrainerBase):
     init_seed: モデルのパラメータの初期化のシード(ただここでシード指定しても、いたる箇所で乱数の影響があるため固定は完全同一は無理)
     device: 使用デバイス
     '''
-    def __init__(self, model, model_args={}, 
+    def __init__(self, encoder, decoder, 
+                 encoder_args={}, decoder_args={}, 
                  loss_func=nn.MSELoss, loss_args={}, 
-                 optim=optimizer.Adam, optim_args={}, init_seed=None, device='cuda:0') -> None:
+                 optim=optimizer.Adam, optim_args={}, 
+                 init_seed=None, device='cuda:0') -> None:
         if init_seed is not None :
             torch.manual_seed(init_seed)
         self.device = device if torch.cuda.is_available() else 'cpu'
-        self.model = model(**model_args) # モデル
-        self.loss_func = loss_func(**loss_args) # 損失関数
-        self.optim = optim(self.model.parameters(), **optim_args) # 最適化関数
+        self.mode = 'reg' # reg, cls
+        # AutoEncoder
+        self.encoder = encoder(**encoder_args)
+        self.decoder = decoder(**decoder_args)
+        self.loss_func = {'reg': loss_func(**loss_args)} # 損失関数
+        self.optim = {'reg': optim(self.encoder.parameters(), **optim_args)} # 最適化関数
         # 訓練
-        self.epoch_count = 0
-        self.train_outputs = torch.tensor([]) # 各エポックの出力(Epoch x n_data x n_cls)
-        self.train_labels = torch.tensor([]) # 各エポックの出力に対応するラベル(Epoch x n_data)
-        self.train_losses = torch.tensor([]) # 各エポックの損失
+        self.epoch_count = {'reg': 0}
+        self.train_outputs = {'reg': torch.tensor([])} # 各エポックの出力
+        self.train_mid_outputs = {'reg': torch.tensor([])}
+        self.train_labels = {'reg': torch.tensor([])} # 各エポックの出力に対応するラベル
+        self.train_losses = {'reg': torch.tensor([])} # 各エポックの損失
         # テスト
-        self.test_outputs = torch.tensor([]) # 各エポックの出力
-        self.test_labels = torch.tensor([]) # 各エポックの出力に対応するラベル
-        self.test_losses = torch.tensor([]) # 各エポックの損失
-    '''
-    デストラクタ
-    
-    GPUを解放できるように
-    '''
-    def __del__(self) :
-        del self.model, self.train_outputs, self.train_labels, self.train_losses,  \
-            self.test_outputs, self.test_labels, self.test_losses
-        torch.cuda.empty_cache() 
-    '''
-    Early Stopping
-    |loss(e)| - |loss(e-1)|がtolerance_loss超の場合がtolerance_e以上続いたときにTrue
-    epoch: 現在のエポック
-    loss: 現在のロス
-    tolerance_loss: ロスの増加許容範囲
-    patience_loss: ロス増加時からエポックの許容範囲
-    '''
-    def _early_stopping(self, epoch, loss, tolerance_loss=0, tolerance_e=0) :
-        # 負の値は許容しない
-        if tolerance_loss < 0 or tolerance_e < 0:
-            raise ValueError('tolerance and patience >= 0')
+        self.test_outputs = {'reg': torch.tensor([])} # 各エポックの出力
+        self.test_mid_outputs = {'reg': torch.tensor([])}
+        self.test_labels = {'reg': torch.tensor([])} # 各エポックの出力に対応するラベル
+        self.test_losses = {'reg': torch.tensor([])} # 各エポックの損失
         
-        # 初期化
-        if epoch==1 :
-            self._prev_loss = float('inf') # 過去のロス
-            self._end = -1 # ロス増加から数えて、終了のエポック
-        
-        # ロスの差が許容範囲内、続行
-        if (abs(loss)-abs(self._prev_loss)) <= tolerance_loss :
-            self._end = -1
-            self._prev_loss = loss
-            return False
-        # 許容範囲外
-        else :
-            self._prev_loss = loss
-            # ロス差範囲外タイミングから終了タイミングを計算
-            if self._end == -1 :
-                self._end = epoch + tolerance_e
-            # 終了タイミングで終了
-            if self._end == epoch :
-                return True
-            # 続行
-            else :
-                return False              
-
 
     '''
     訓練
     train_x: 訓練データ(torch.tensor)
-    train_y: 訓練ラベル(torch.tensor)
+    train_y: 訓練ラベル(torch.tensor)、None: 入力データが正解
     epoch: エポック数
     batch_size: バッチサイズ
     extra_func: モデル出力に追加で適用する関数
@@ -96,23 +64,33 @@ class DNNRegressor(_TrainerBase):
     tol_loss: _early_stoppingのtolerance_lossと対応
     tol_e: _early_stoppingのtolerance_eと対応
     keep_outputs: 出力を何エポックごとに保持するか(データ量を減らす)
+    keep_mid_outputs: 中間出力を何エポックごとに保持するか(データ量を減らす)
     keep_losses: 損失を何エポックごとに保持するか
     verbose: 何エポックごとに結果(損失)を表示するか(0:出力無)
     to_np: 結果をnumpyに変換
     '''
-    def train(self, train_x, train_y, epoch, batch_size, 
+    # 要追加 中間層の出力を保存、mode違いに対応、encoderとdecoderの接続部分
+    def train(self, train_x, train_y=None, epoch=1, batch_size=1,
               extra_func=None, early_stopping=False, tol_loss=0, tol_e=0,
-              keep_outputs=1, keep_losses=1, verbose=1, to_np=False) :
+              keep_outputs=1, keep_mid_outputs=None, keep_losses=1, verbose=1, to_np=False) :
         # DataLoader
         train_data_size = train_x.size()[0]
-        train_ds = TensorDataset(train_x, train_y)
+        # 正解ラベルがなければ、入力を正解とする
+        train_ds = TensorDataset(train_x, train_y) if train_y is None else TensorDataset(train_x, train_y)  
         # shuffleはシード値指定できないから無し or 手動
         train_loader = DataLoader(train_ds, batch_size=batch_size)
-
+        if self.mode == 'reg' :
+            self.encoder.to(self.device)
+            self.decoder.to(self.device)
+        else :
+            self.encoder.to(self.device)
+            self.encoder.eval()
+            self.classifier.to(self.device)
         self.model = self.model.to(self.device) # GPU使用の場合、転送
         self.model.train()
         for e in range(1, epoch+1):
             epoch_outputs = torch.tensor([])
+            epoch_mid_outputs = torch.tensor([])
             epoch_labels = torch.tensor([])
             epoch_loss = 0
             for x, y in train_loader :
@@ -145,6 +123,8 @@ class DNNRegressor(_TrainerBase):
             if e%keep_outputs == 0 :
                 self.train_outputs = torch.cat((self.train_outputs,epoch_outputs.unsqueeze(dim=0)), dim=0)
                 self.train_labels = torch.cat((self.train_labels, epoch_labels.unsqueeze(dim=0)), dim=0)
+            if (keep_mid_outputs is not None) & (e%keep_mid_outputs==0) :
+                self.train_mid_outputs = torch.cat((self.train_mid_outputs,epoch_mid_outputs.unsqueeze(dim=0)), dim=0)
             if e%keep_losses == 0 :
                 self.train_losses = torch.cat((self.train_losses, torch.tensor([epoch_loss])), dim=0)
 
@@ -162,7 +142,7 @@ class DNNRegressor(_TrainerBase):
     '''
     テスト
     test_x: テストデータ(torch.tensor)
-    test_y: テストラベル(torch.tensor)
+    test_y: テストラベル(torch.tensor)、None: 入力データが正解
     batch_size: バッチサイズ
     extra_func: モデル出力に追加で適用する関数
     keep_outputs: 出力を保持するか(0:無 or 1:有)
@@ -171,11 +151,11 @@ class DNNRegressor(_TrainerBase):
     to_np: 結果をnumpyに変換
     '''
     # テスト
-    def test(self, test_x, test_y, batch_size=10, extra_func=None, 
-             keep_outputs=1, keep_losses=1, verbose=1, to_np=False) :
+    def test(self, test_x, test_y=None, batch_size=1, extra_func=None, 
+             keep_outputs=1, keep_mid_outputs=0, keep_losses=1, verbose=1, to_np=False) :
         # DataLoader
         test_data_size = test_x.size()[0]
-        test_ds = TensorDataset(test_x, test_y)
+        test_ds = TensorDataset(test_x, test_x) if test_y is None else TensorDataset(test_x, test_y)  
         # shuffleはシード値指定できないから無し or 手動
         test_loader = DataLoader(test_ds, batch_size=batch_size)
 
@@ -221,9 +201,9 @@ class DNNRegressor(_TrainerBase):
     '''
     エポック毎に訓練+テスト
     train_x: 訓練データ(torch.tensor)
-    train_y: 訓練ラベル(torch.tensor)
+    train_y: 訓練ラベル(torch.tensor)、None: 入力データが正解
     test_x: テストデータ(torch.tensor)
-    test_y: テストラベル(torch.tensor)
+    test_y: テストラベル(torch.tensor)、None: 入力データが正解
     epoch: エポック数
     batch_size: バッチサイズ
     extra_func: モデル出力に追加で適用する関数
@@ -235,14 +215,15 @@ class DNNRegressor(_TrainerBase):
     verbose: 何エポックごとに結果(損失と精度)を表示するか(0:出力無し)
     to_np: 結果をnumpyに変換
     '''
-    def train_test(self, train_x, train_y, test_x, test_y, epoch, batch_size, extra_func=None,
+    def train_test(self, train_x, test_x, train_y=None, test_y=None, 
+                   epoch=1, batch_size=1, extra_func=None,
                    early_stopping=False, tol_loss=0, tol_e=0,
-                   keep_outputs=1, keep_losses=1, verbose=1, to_np=False) :
+                   keep_outputs=1, keeps_mid_outputs=0, keep_losses=1, verbose=1, to_np=False) :
         # DataLoader
         train_data_size = train_x.size()[0]
         test_data_size = test_x.size()[0]
-        train_ds = TensorDataset(train_x, train_y)
-        test_ds = TensorDataset(test_x, test_y)
+        train_ds = TensorDataset(train_x, train_y) if train_y is None else TensorDataset(train_x, train_y) 
+        test_ds = TensorDataset(test_x, test_x) if test_y is None else TensorDataset(test_x, test_y) 
         # shuffleはシード値指定できないから無し or 手動
         train_loader = DataLoader(train_ds, batch_size=batch_size, shuffle=False)
         test_loader = DataLoader(test_ds, batch_size=batch_size, shuffle=False)
@@ -343,6 +324,15 @@ class DNNRegressor(_TrainerBase):
     # 要確認 パラメータをロードした後、optim(model.parameters())を再生成する必要はないのか
     def load_model(self, model_fn) -> None:
         self.model.load_state_dict(torch.load(model_fn))
+
+    # Encoder
+    def to_classifier(self, classifier, classifier_args={}, 
+                      loss_func=nn.CrossEntropyLoss, loss_args={}, 
+                      optim=optimizer.Adam, optim_args={}, init_seed=None, device='cuda:0') :
+        self.mode = 'cls'
+        self.classifier = classifier(**classifier_args)
+        self.loss_func['cls'] = loss_func
+        pass
 
     # テスト結果を確認
     def outputs_test_results(self, log_fn=None, stream=True) :
