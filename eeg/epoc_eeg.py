@@ -4,15 +4,16 @@ import matplotlib.pyplot as plot
 import pandas as pd
 import mne
 
-# Emotiv Epoc出力データを読み込み用クラス
-# 変更予定(途中)
-# ・Stageに対応(読込まではできる)
 class EpocEEG():
-    # csv_fn : EmotivEpocから出力されたCSV(列: Time:[sfreq]Hz, Epoch, CH1,...CH14, (Label)でなければならない)
-    # labels_fn : 各エポックがなんのイベントに対応しているかを示すファイル(行番号=エポックで1行1ラベル)
-    # include_labels : CSVがラベルのカラムを含んでいるか
-    # ※EDFはエポックを読み込む方法が分からないので保留
+    '''
+    Emotiv Epoc出力データを読み込み用クラス
+    '''
     def __init__(self, csv_fn, labels_fn=None, include_labels=True, target_stage=None) :
+        '''
+        csv_fn : EmotivEpocから出力されたCSV(列: Time:[sfreq]Hz, Epoch, CH1,...CH14, (Label)でなければならない)
+        labels_fn : 各エポックがなんのイベントに対応しているかを示すファイル(行番号=エポックで1行1ラベル)
+        include_labels : CSVがラベルのカラムを含んでいるか
+        '''
         df = pd.read_csv(csv_fn)
         cols = df.columns
         # mne raw構造体を作成
@@ -56,10 +57,13 @@ class EpocEEG():
                 for e in range(self.n_epoch) :
                     self.stage_starts[stg].append(df[(df['Stage']==stg) & (df['Epoch']==e)].index[0])
 
-    # データ取得(2次元)
-    # target_epoch : 対象エポック(None:全範囲)
-    # target_chs : 対象電極(None:全範囲)
+    
     def get_data(self, target_epoch=None, target_chs=None):
+        '''
+        データ取得(2次元)
+        target_epoch : 対象エポック(None:全範囲)
+        target_chs : 対象電極(None:全範囲)
+        '''
         if target_chs is None :
             target_chs = self.ch_names
         # エポック指定
@@ -69,14 +73,15 @@ class EpocEEG():
             data, _ = self.raw[target_chs,int(self.epoch_ranges[target_epoch,0]):int(self.epoch_ranges[target_epoch,1])+1]
         return data
 
-    '''
-    データ取得
-    3次元(target_epochs(labels) x target_chs x n_sample)に加工ver.
-    target_epochs: 対象エポック(None: 全エポック)
-    target_labels: 対象ラベル(target_epochs=Noneのとき)
-    target_chs: 対象電極(None:全範囲)
-    '''
+    
     def get_split_data(self, target_epochs=None, target_labels=None, target_chs=None) :
+        '''
+        データ取得
+        3次元(target_epochs(labels) x target_chs x n_sample)に加工ver.
+        target_epochs: 対象エポック(None: 全エポック)
+        target_labels: 対象ラベル(target_epochs=Noneのとき)
+        target_chs: 対象電極(None:全範囲)
+        '''
         if target_epochs is None :
             if target_labels is None :
                 target_epochs = [e for e in range(self.n_epoch)]
@@ -85,10 +90,13 @@ class EpocEEG():
         data = np.array([self.get_data(target_epoch=e, target_chs=target_chs) for e in target_epochs])
         return data
 
-    # データ更新
-    # data : 対象データ
-    # target_epoch : 指定エポック(None:全範囲)
+    
     def set_data(self, data, target_epoch=None) :
+        '''
+        データ更新
+        data : 対象データ
+        target_epoch : 指定エポック(None:全範囲)
+        '''
         if target_epoch is None :
             self.raw[:,:] = data
         else :
@@ -97,19 +105,21 @@ class EpocEEG():
                 self.raw[:,int(self.epoch_ranges[target_epoch,0]):int(self.epoch_ranges[target_epoch,1])+1] = data # スライスでは末尾+1
 
 
-    # プロット ***n_chs != target_ch -> n_chs:何番目まで表示するか
-    # target_chs : 対象チャンネル(複数可、None:全範囲)
-    # target_epoch : 対象エポック(None:全範囲)
-    # tmin, tmax : ・target_epoch=Noneの時
-    #                0を基準に時間指定(s),
-    #              ・target_epoch!=Noneの時
-    #                対象エポックの開始時間を基準に時間範囲指定(s)、tmin,tmax < 0可
-    #                ex. tmin=-1, tmax=5 : エポック開始時間の(-1s~+5s)の範囲(tmin < tmax, tmin:None=0, tmax:None=epoch duration)
-    # scalings : グラフのy軸の大きさ
-    # block : 画像を消すまで進まない
-    # show : 画像を表示しない
-    # out_fn : 指定した場合、画像ファイル出力()
     def plot_data(self, target_chs=None, target_epoch=None, tmin=None, tmax=None, scalings=None, block=True, show=True, title=None, out_fn=None):
+        '''
+        プロット
+        target_chs : 対象チャンネル(複数可、None:全範囲)
+        target_epoch : 対象エポック(None:全範囲)
+        tmin, tmax : ・target_epoch=Noneの時
+                     0を基準に時間指定(s),
+                   ・target_epoch!=Noneの時
+                     対象エポックの開始時間を基準に時間範囲指定(s)、tmin,tmax < 0可
+                    ex. tmin=-1, tmax=5 : エポック開始時間の(-1s~+5s)の範囲(tmin < tmax, tmin:None=0, tmax:None=epoch duration)
+        scalings : グラフのy軸の大きさ
+        block : 画像を消すまで進まない
+        show : 画像を表示しない
+        out_fn : 指定した場合、画像ファイル出力()
+        '''
         title='' if title is None else title
         # mneのフォーマット
         scalings={'eeg':'auto'} if scalings is None else {'eeg':scalings}
@@ -175,15 +185,15 @@ class EpocEEG():
                 fig.clf()
                 #fig.close()
         
-
-
-    # ERP(事象関連電位)を表示
-    # target_labels : 事象関連電位対象ラベル
-    # target_chs : 対象電極
-    # tmin, tmax : 対象ラベルのエポック開始時間を基準に時間範囲指定(s)、tmin,tmax < 0可
-    #               ex. tmin=-1, tmax=5 : エポック開始時間の(-1s~+5s)の範囲(tmin < tmax, tmin:None=0,tmax:None=epoch0 duration)
-    # labels_dic : ラベルとイベント番号の対応辞書(Noneで自動) 
     def plot_erp(self, target_labels, tmin=None, tmax=None, target_chs=None, labels_dic=None, title=None, show=True, out_fn=None):
+        '''
+        ERP(事象関連電位)を表示
+        target_labels : 事象関連電位対象ラベル
+        target_chs : 対象電極
+        tmin, tmax : 対象ラベルのエポック開始時間を基準に時間範囲指定(s)、tmin,tmax < 0可
+                      ex. tmin=-1, tmax=5 : エポック開始時間の(-1s~+5s)の範囲(tmin < tmax, tmin:None=0,tmax:None=epoch0 duration)
+        labels_dic : ラベルとイベント番号の対応辞書(Noneで自動) 
+        '''
         # ラベルと番号を対応付け
         if labels_dic is None :
             labels_dic = dict()
@@ -236,12 +246,14 @@ class EpocEEG():
         return new_data
     
 
-    # データ保存
-    # out_path : 保存ディレクトリ(無ければ作成)
-    # csv_fn : データCSVファイル名
-    # labels_fn : ラベルファイル(Noneなら無し)
-    # include_labels : CSVにラベルのカラムを含めるか
     def save_data(self, csv_fn, labels_fn=None, include_labels=False) : 
+        '''
+        データ保存
+        out_path : 保存ディレクトリ(無ければ作成)
+        csv_fn : データCSVファイル名
+        labels_fn : ラベルファイル(Noneなら無し)
+        include_labels : CSVにラベルのカラムを含めるか
+        '''
         # 時間、エポック、電極(データ)のカラムを作成
         df = pd.DataFrame()
         time = self.raw.times
@@ -270,41 +282,41 @@ class EpocEEG():
         
 
 
-class Preprocesser() :
-    def __init__(self) :
-        pass
+# class Preprocesser() :
+#     def __init__(self) :
+#         pass
 
-    #フィルタリング
-    # epoc_eeg : EpocEEGInstance
-    # sfreq : サンプリング周波数
-    # l_freq, h_freq : フィルタリング周波数
-    #                  l_freq < h_freq: band-pass filter
-    #                  l_freq > h_freq: band-stop filter
-    #                  l_freq is not None and h_freq is None: high-pass filter
-    #                  l_freq is None and h_freq is not None: low-pass filter
-    def filter(self, epoc_eeg, l_freq, h_freq) :
-        epoc_eeg.raw.filter(l_freq, h_freq)
+#     #フィルタリング
+#     # epoc_eeg : EpocEEGInstance
+#     # sfreq : サンプリング周波数
+#     # l_freq, h_freq : フィルタリング周波数
+#     #                  l_freq < h_freq: band-pass filter
+#     #                  l_freq > h_freq: band-stop filter
+#     #                  l_freq is not None and h_freq is None: high-pass filter
+#     #                  l_freq is None and h_freq is not None: low-pass filter
+#     def filter(self, epoc_eeg, l_freq, h_freq) :
+#         epoc_eeg.raw.filter(l_freq, h_freq)
         
     
-    # 基準値減算したデータ取得(各エポック毎、各電極の平均値をオリジナルから引く)
-    def remove_baseline(self, epoc_eeg) :
-        new_data = np.empty((epoc_eeg.n_ch,0))
-        for e in range(epoc_eeg.n_epoch) :
-            epoch_data = epoc_eeg.get_data(target_epoch=e)
-            epoch_means = np.mean(epoch_data, axis=1) # エポックの各チャンネル毎の平均値
-            for ch in range(epoc_eeg.n_ch) :
-                epoch_data[ch] = epoch_data[ch] - epoch_means[ch]    
-            new_data = np.concatenate([new_data, epoch_data], axis=1)
-        epoc_eeg.set_data(new_data)
+#     # 基準値減算したデータ取得(各エポック毎、各電極の平均値をオリジナルから引く)
+#     def remove_baseline(self, epoc_eeg) :
+#         new_data = np.empty((epoc_eeg.n_ch,0))
+#         for e in range(epoc_eeg.n_epoch) :
+#             epoch_data = epoc_eeg.get_data(target_epoch=e)
+#             epoch_means = np.mean(epoch_data, axis=1) # エポックの各チャンネル毎の平均値
+#             for ch in range(epoc_eeg.n_ch) :
+#                 epoch_data[ch] = epoch_data[ch] - epoch_means[ch]    
+#             new_data = np.concatenate([new_data, epoch_data], axis=1)
+#         epoc_eeg.set_data(new_data)
         
-    # ICAによるアーティファクト除去
-    def remove_artifacts(self, epoc_eeg) :
-        # ICA
-        ica = mne.preprocessing.ICA(n_components=epoc_eeg.n_ch, n_pca_components=epoc_eeg.n_ch, max_iter=100)
-        ica.fit(epoc_eeg.raw)
-        # アーティファクト除去
-        ica.detect_artifacts(epoc_eeg.raw)
-        ica.apply(epoc_eeg.raw)
+#     # ICAによるアーティファクト除去
+#     def remove_artifacts(self, epoc_eeg) :
+#         # ICA
+#         ica = mne.preprocessing.ICA(n_components=epoc_eeg.n_ch, n_pca_components=epoc_eeg.n_ch, max_iter=100)
+#         ica.fit(epoc_eeg.raw)
+#         # アーティファクト除去
+#         ica.detect_artifacts(epoc_eeg.raw)
+#         ica.apply(epoc_eeg.raw)
         
 
 

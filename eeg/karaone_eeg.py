@@ -8,11 +8,16 @@ import matplotlib.pyplot as plot
 import pandas as pd
 import mne
 
-# KARAONEデータ(CSVに変換済)を読み込み用クラス
+
 class KaraoneEEG():
-    # csv_fn : KARAONEデータCSV(列: Time:[sfreq]Hz, Epoch, CH1,...CH62, Label, Stage)
-    # target_stage: None=full, resting, stimuli,thinking, speaking  
+    '''
+    KARAONEデータ(CSVに変換済)を読み込み用クラス
+    '''
     def __init__(self, csv_fn, target_stage=None) :
+        '''
+        csv_fn : KARAONEデータCSV(列: Time:[sfreq]Hz, Epoch, CH1,...CH62, Label, Stage)
+        target_stage: None=full, resting, stimuli,thinking, speaking 
+        '''
         df = pd.read_csv(csv_fn)
         if target_stage is not None :
             df = df[df['Stage']==target_stage]
@@ -48,10 +53,13 @@ class KaraoneEEG():
             for e in range(self.n_epoch) :
                 self.stage_starts[stg].append(df[(df['Stage']==stg) & (df['Epoch']==e)].index[0])
     
-    # データ取得
-    # target_epoch : 対象エポック(None:全範囲)
-    # target_chs : 対象電極(None:全範囲)
+    
     def get_data(self, target_epoch=None, target_chs=None):
+        '''
+        データ取得
+        target_epoch : 対象エポック(None:全範囲)
+        target_chs : 対象電極(None:全範囲)
+        '''
         if target_chs is None :
             target_chs = self.ch_names
         # エポック指定
@@ -61,14 +69,15 @@ class KaraoneEEG():
             data, _ = self.raw[target_chs,int(self.epoch_ranges[target_epoch,0]):int(self.epoch_ranges[target_epoch,1])+1]
         return data
     
-    '''
-    データ取得
-    3次元(target_epochs(labels) x target_chs x n_sample)に加工ver.
-    target_epochs: 対象エポック(None: 全エポック)
-    target_labels: 対象ラベル(target_epochs=Noneのとき)
-    target_chs: 対象電極(None:全範囲)
-    '''
+    
     def get_split_data(self, target_epochs=None, target_labels=None, target_chs=None) :
+        '''
+        データ取得
+        3次元(target_epochs(labels) x target_chs x n_sample)に加工ver.
+        target_epochs: 対象エポック(None: 全エポック)
+        target_labels: 対象ラベル(target_epochs=Noneのとき)
+        target_chs: 対象電極(None:全範囲)
+        '''
         if target_epochs is None :
             if target_labels is None :
                 target_epochs = [e for e in range(self.n_epoch)]
@@ -77,10 +86,13 @@ class KaraoneEEG():
         data = np.array([self.get_data(target_epoch=e, target_chs=target_chs) for e in target_epochs])
         return data
 
-    # データ更新
-    # data : 対象データ
-    # target_epoch : 指定エポック(None:全範囲)
+
     def set_data(self, data, target_epoch=None) :
+        '''
+        データ更新
+        data : 対象データ
+        target_epoch : 指定エポック(None:全範囲)
+        '''
         if target_epoch is None :
             self.raw[:,:] = data
         else :
@@ -89,19 +101,21 @@ class KaraoneEEG():
                 self.raw[:,int(self.epoch_ranges[target_epoch,0]):int(self.epoch_ranges[target_epoch,1])+1] = data # スライスでは末尾+1
 
 
-    # プロット ***n_channel != target_ch -> n_channels:何番目まで表示するか
-    # target_chs : 対象チャンネル(複数可、None:全範囲)
-    # target_epoch : 対象エポック(None:全範囲)
-    # tmin, tmax : ・target_epoch=Noneの時
-    #                0を基準に時間指定(s),
-    #              ・target_epoch!=Noneの時
-    #                対象エポックの開始時間を基準に時間範囲指定(s)、tmin,tmax < 0可
-    #                ex. tmin=-1, tmax=5 : エポック開始時間の(-1s~+5s)の範囲(tmin < tmax, tmin:None=0, tmax:None=epoch duration)
-    # scalings : グラフのy軸の大きさ
-    # block : 画像を消すまで進まない
-    # show : 画像を表示しない
-    # out_fn : 指定した場合、画像ファイル出力()
     def plot_data(self, target_chs=None, target_epoch=None, tmin=None, tmax=None, scalings=None, block=True, show=True, title=None, out_fn=None):
+        '''
+        プロット
+        target_chs : 対象チャンネル(複数可、None:全範囲)
+        target_epoch : 対象エポック(None:全範囲)
+        tmin, tmax : ・target_epoch=Noneの時
+                     0を基準に時間指定(s),
+                   ・target_epoch!=Noneの時
+                     対象エポックの開始時間を基準に時間範囲指定(s)、tmin,tmax < 0可
+                    ex. tmin=-1, tmax=5 : エポック開始時間の(-1s~+5s)の範囲(tmin < tmax, tmin:None=0, tmax:None=epoch duration)
+        scalings : グラフのy軸の大きさ
+        block : 画像を消すまで進まない
+        show : 画像を表示しない
+        out_fn : 指定した場合、画像ファイル出力()
+        '''
         title='' if title is None else title
         # mneのフォーマット
         scalings={'eeg':'auto'} if scalings is None else {'eeg':scalings}
@@ -166,16 +180,17 @@ class KaraoneEEG():
                 #if show :
                 fig.clf()
                 #fig.close()
-        
 
 
-    # ERP(事象関連電位)を表示
-    # target_labels : 事象関連電位対象ラベル
-    # target_chs : 対象電極
-    # tmin, tmax : 対象ラベルのエポック開始時間を基準に時間範囲指定(s)、tmin,tmax < 0可
-    #               ex. tmin=-1, tmax=5 : エポック開始時間の(-1s~+5s)の範囲(tmin < tmax, tmin:None=0,tmax:None=epoch0 duration)
-    # labels_dic : ラベルとイベント番号の対応辞書(Noneで自動) 
     def plot_erp(self, target_labels, tmin=None, tmax=None, target_chs=None, labels_dic=None, title=None, show=True, out_fn=None):
+        '''
+        ERP(事象関連電位)を表示
+        target_labels : 事象関連電位対象ラベル
+        target_chs : 対象電極
+        tmin, tmax : 対象ラベルのエポック開始時間を基準に時間範囲指定(s)、tmin,tmax < 0可
+                      ex. tmin=-1, tmax=5 : エポック開始時間の(-1s~+5s)の範囲(tmin < tmax, tmin:None=0,tmax:None=epoch0 duration)
+        labels_dic : ラベルとイベント番号の対応辞書(Noneで自動) 
+        '''
         # ラベルと番号を対応付け
         if labels_dic is None :
             labels_dic = dict()
@@ -228,12 +243,14 @@ class KaraoneEEG():
         return new_data
     
 
-    # データ保存
-    # out_path : 保存ディレクトリ(無ければ作成)
-    # csv_fn : データCSVファイル名
-    # labels_fn : ラベルファイル(Noneなら無し)
-    # include_labels : CSVにラベルのカラムを含めるか
     def save_data(self, csv_fn, labels_fn=None, include_labels=False) : 
+        '''
+        データ保存
+        out_path : 保存ディレクトリ(無ければ作成)
+        csv_fn : データCSVファイル名
+        labels_fn : ラベルファイル(Noneなら無し)
+        include_labels : CSVにラベルのカラムを含めるか
+        '''
         # 時間、エポック、電極(データ)のカラムを作成
         df = pd.DataFrame()
         time = self.raw.times

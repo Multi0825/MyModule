@@ -152,13 +152,15 @@ def gen_images(locs, features, n_gridpoints, normalize=True,
     return np.swapaxes(np.asarray(temp_interp), 0, 1)     # swap axes to have [samples, colors, W, H]
 
 
-# 手順を一括
-# ch_cords3d: np.ndarray, n_ch x 3(x, y, z)
-# feats: np.ndarray, n_sample x n_ch x n_feat
-# n_gridpoints: 画像(変換行列)
-# others: gen_images参照
 def gen_eeg_imgs(ch_cords3d, feats, n_gridpoints, 
                  normalize=True, augment=False, pca=False, std_mult=0.1, n_components=2, edgeless=False) :
+    '''
+    EEG画像生成手順を一括
+    ch_cords3d: np.ndarray, n_ch x 3(x, y, z)
+    feats: np.ndarray, n_sample x n_ch x n_feat
+    n_gridpoints: 画像(変換行列)
+    others: gen_images参照
+    '''
     n_ch = ch_cords3d.shape[0]
     ch_cords2d = []
     # 3D -> 2D
@@ -175,12 +177,15 @@ def gen_eeg_imgs(ch_cords3d, feats, n_gridpoints,
                       std_mult=std_mult, n_components=n_components, edgeless=edgeless)
     return imgs # n_sample x D(画像分野におけるチャンネル) x W x H 
 
-# 画像を表示or出力死体場合
-# img: D x W x H
-# cmap: カラーマップ
-# fig_fn: 出力ファイル名
+
 def plt_img(img, cmap='jet', fig_fns=None) :
-     for d in range(img.shape[0]) :
+    '''
+    画像を表示or出力死体場合
+    img: D x W x H
+    cmap: カラーマップ
+    fig_fn: 出力ファイル名
+    '''
+    for d in range(img.shape[0]) :
         x = [i for i in range(img.shape[1])]
         y = [i for i in range(img.shape[2])]
         z = img[d].T # 転置しないと軸が非直観的 

@@ -10,104 +10,47 @@ from sklearn.metrics import confusion_matrix
 from .._trainer_base import _TrainerBase
 from ..utils import torch2np 
 
-
-# DNN分類器
 class DNNClassifier(_TrainerBase):
     '''
-    model: モデルクラス
-    model: モデル引数(辞書型)
-    loss_func: 損失関数
-    loss_args: 損失関数引数(辞書型)
-    optim: 最適化関数
-    optim_args: 最適化関数引数(辞書型、model.parameters()以外)
-    init_seed: モデルのパラメータの初期化のシード(ただここでシード指定しても、いたる箇所で乱数の影響があるため固定は完全同一は無理)
-    device: 使用デバイス
+    DNN分類器
     '''
     def __init__(self, model, model_args={}, 
                  loss_func=nn.CrossEntropyLoss, loss_args={}, 
                  optim=optimizer.Adam, optim_args={}, init_seed=None, device='cuda:0') -> None:
-        if init_seed is not None :
-            torch.manual_seed(init_seed)
-        self.device = device if torch.cuda.is_available() else 'cpu'
-        self.model = model(**model_args) # モデル
-        self.loss_func = loss_func(**loss_args) # 損失関数
-        self.optim = optim(self.model.parameters(), **optim_args) # 最適化関数
-        # 訓練
-        self.epoch_count = 0
-        self.train_outputs = torch.tensor([]) # 各エポックの出力(Epoch x n_data x n_cls)
-        self.train_labels = torch.tensor([]) # 各エポックの出力に対応するラベル(Epoch x n_data)
-        self.train_losses = torch.tensor([]) # 各エポックの損失
+        '''
+        model: モデルクラス
+        model_args: モデル引数(辞書型)
+        loss_func: 損失関数
+        loss_args: 損失関数引数(辞書型)
+        optim: 最適化関数
+        optim_args: 最適化関数引数(辞書型、model.parameters()以外)
+        init_seed: モデルのパラメータの初期化のシード(ただここでシード指定しても、いたる箇所で乱数の影響があるため固定は完全同一は無理)
+        device: 使用デバイス
+        '''
+        super().__init__(model, model_args, loss_func, loss_args, 
+                         optim, optim_args, init_seed, device)
         self.train_accs = torch.tensor([]) # 各エポックの精度
-        # テスト
-        self.test_outputs = torch.tensor([]) # 各エポックの出力
-        self.test_labels = torch.tensor([]) # 各エポックの出力に対応するラベル
-        self.test_losses = torch.tensor([]) # 各エポックの損失
         self.test_accs = torch.tensor([]) # 各エポックの精度
-    '''
-    デストラクタ
     
-    GPUを解放できるように
-    '''
-    def __del__(self) :
-        del self.model, self.train_outputs, self.train_labels, self.train_losses, self.train_accs,  \
-            self.test_outputs, self.test_labels, self.test_losses, self.test_accs
-        torch.cuda.empty_cache() 
-    '''
-    Early Stopping
-    |loss(e)| - |loss(e-1)|がtolerance_loss超の場合がtolerance_e以上続いたときにTrue
-    epoch: 現在のエポック
-    loss: 現在のロス
-    tolerance_loss: ロスの増加許容範囲
-    patience_loss: ロス増加時からエポックの許容範囲
-    '''
-    def _early_stopping(self, epoch, loss, tolerance_loss=0, tolerance_e=0) :
-        # 負の値は許容しない
-        if tolerance_loss < 0 or tolerance_e < 0:
-            raise ValueError('tolerance and patience >= 0')
-        
-        # 初期化
-        if epoch==1 :
-            self._prev_loss = float('inf') # 過去のロス
-            self._end = -1 # ロス増加から数えて、終了のエポック
-        
-        # ロスの差が許容範囲内、続行
-        if (abs(loss)-abs(self._prev_loss)) <= tolerance_loss :
-            self._end = -1
-            self._prev_loss = loss
-            return False
-        # 許容範囲外
-        else :
-            self._prev_loss = loss
-            # ロス差範囲外タイミングから終了タイミングを計算
-            if self._end == -1 :
-                self._end = epoch + tolerance_e
-            # 終了タイミングで終了
-            if self._end == epoch :
-                return True
-            # 続行
-            else :
-                return False              
-
-
-    '''
-    訓練
-    train_x: 訓練データ(torch.tensor)
-    train_y: 訓練ラベル(torch.tensor)
-    epoch: エポック数
-    batch_size: バッチサイズ
-    extra_func: モデル出力に追加で適用する関数
-    early_stopping: Early Stoppingの有無
-    tol_loss: _early_stoppingのtolerance_lossと対応
-    tol_e: _early_stoppingのtolerance_eと対応
-    keep_outputs: 出力を何エポックごとに保持するか(データ量を減らす)
-    keep_losses: 損失を何エポックごとに保持するか
-    keep_accs: 精度を何エポックごとに保持するか
-    verbose: 何エポックごとに結果(損失と精度)を表示するか(0:出力無)
-    to_np: 結果をnumpyに変換
-    '''
     def train(self, train_x, train_y, epoch, batch_size, 
               extra_func=None, early_stopping=False, tol_loss=0, tol_e=0,
               keep_outputs=1, keep_losses=1, keep_accs=1, verbose=1, to_np=False) :
+        '''
+        訓練
+        train_x: 訓練データ(torch.tensor)
+        train_y: 訓練ラベル(torch.tensor)
+        epoch: エポック数
+        batch_size: バッチサイズ
+        extra_func: モデル出力に追加で適用する関数
+        early_stopping: Early Stoppingの有無
+        tol_loss: _early_stoppingのtolerance_lossと対応
+        tol_e: _early_stoppingのtolerance_eと対応
+        keep_outputs: 出力を何エポックごとに保持するか(データ量を減らす)
+        keep_losses: 損失を何エポックごとに保持するか
+        keep_accs: 精度を何エポックごとに保持するか
+        verbose: 何エポックごとに結果(損失と精度)を表示するか(0:出力無)
+        to_np: 結果をnumpyに変換
+        '''
         # DataLoader
         train_data_size = train_x.size()[0]
         train_ds = TensorDataset(train_x, train_y)
@@ -137,7 +80,7 @@ class DNNClassifier(_TrainerBase):
                 self.optim.zero_grad()
                 # 損失の計算
                 loss = self.loss_func(pred_y, y)
-                epoch_loss += loss.item()
+                epoch_loss += loss.to('cpu').item()
                 # 勾配の計算(誤差逆伝播) 
                 loss.backward()
                 # 重みの更新
@@ -170,21 +113,21 @@ class DNNClassifier(_TrainerBase):
         else :
             return self.train_losses, self.train_accs
 
-    '''
-    テスト
-    test_x: テストデータ(torch.tensor)
-    test_y: テストラベル(torch.tensor)
-    batch_size: バッチサイズ
-    extra_func: モデル出力に追加で適用する関数
-    keep_outputs: 出力を保持するか(0:無 or 1:有)
-    keep_losses: 損失を保持するか(0:無 or 1:有)
-    keep_accs: 精度を保持するか(0:無 or 1:有)
-    verbose: 結果(損失と精度)を表示するか(0:無 or 1:有)
-    to_np: 結果をnumpyに変換
-    '''
-    # テスト
+
     def test(self, test_x, test_y, batch_size=10, extra_func=None, 
              keep_outputs=1, keep_losses=1, keep_accs=1, verbose=1, to_np=False) :
+        '''
+        テスト
+        test_x: テストデータ(torch.tensor)
+        test_y: テストラベル(torch.tensor)
+        batch_size: バッチサイズ
+        extra_func: モデル出力に追加で適用する関数
+        keep_outputs: 出力を保持するか(0:無 or 1:有)
+        keep_losses: 損失を保持するか(0:無 or 1:有)
+        keep_accs: 精度を保持するか(0:無 or 1:有)
+        verbose: 結果(損失と精度)を表示するか(0:無 or 1:有)
+        to_np: 結果をnumpyに変換
+        '''
         # DataLoader
         test_data_size = test_x.size()[0]
         test_ds = TensorDataset(test_x, test_y)
@@ -213,7 +156,7 @@ class DNNClassifier(_TrainerBase):
                 epoch_labels = torch.cat((epoch_labels, y.to('cpu')), dim=0)
                 # 損失の計算
                 loss = self.loss_func(pred_y, y) 
-                epoch_loss += loss.item()
+                epoch_loss += loss.to('cpu').item()
                 # 正解数
                 _, pred_class = pred_y.max(dim=1)
                 epoch_hit += (pred_class == y).sum().item()
@@ -237,27 +180,28 @@ class DNNClassifier(_TrainerBase):
         else :
             return self.test_losses, self.test_accs
 
-    '''
-    エポック毎に訓練+テスト
-    train_x: 訓練データ(torch.tensor)
-    train_y: 訓練ラベル(torch.tensor)
-    test_x: テストデータ(torch.tensor)
-    test_y: テストラベル(torch.tensor)
-    epoch: エポック数
-    batch_size: バッチサイズ
-    extra_func: モデル出力に追加で適用する関数
-    early_stopping: Early Stoppingの有無
-    tol_loss: _early_stoppingのtolerance_lossと対応
-    tol_e: _early_stoppingのtolerance_eと対応
-    keep_outputs: 出力を何エポックごとに保持するか(データ量を減らす)
-    keep_losses: 損失を何エポックごとに保持するか
-    keep_accs: 精度を何エポックごとに保持するか
-    verbose: 何エポックごとに結果(損失と精度)を表示するか(0:出力無し)
-    to_np: 結果をnumpyに変換
-    '''
+
     def train_test(self, train_x, train_y, test_x, test_y, epoch, batch_size, extra_func=None,
                    early_stopping=False, tol_loss=0, tol_e=0,
                    keep_outputs=1, keep_losses=1, keep_accs=1, verbose=1, to_np=False) :
+        '''
+        エポック毎に訓練+テスト
+        train_x: 訓練データ(torch.tensor)
+        train_y: 訓練ラベル(torch.tensor)
+        test_x: テストデータ(torch.tensor)
+        test_y: テストラベル(torch.tensor)
+        epoch: エポック数
+        batch_size: バッチサイズ
+        extra_func: モデル出力に追加で適用する関数
+        early_stopping: Early Stoppingの有無
+        tol_loss: _early_stoppingのtolerance_lossと対応
+        tol_e: _early_stoppingのtolerance_eと対応
+        keep_outputs: 出力を何エポックごとに保持するか(データ量を減らす)
+        keep_losses: 損失を何エポックごとに保持するか
+        keep_accs: 精度を何エポックごとに保持するか
+        verbose: 何エポックごとに結果(損失と精度)を表示するか(0:出力無し)
+        to_np: 結果をnumpyに変換
+        '''
         # DataLoader
         train_data_size = train_x.size()[0]
         test_data_size = test_x.size()[0]
@@ -291,7 +235,7 @@ class DNNClassifier(_TrainerBase):
                 self.optim.zero_grad()
                 # 損失の計算
                 loss = self.loss_func(pred_y, y) 
-                epoch_loss += loss.item()
+                epoch_loss += loss.to('cpu').item()
                 # 勾配の計算(誤差逆伝播) 
                 loss.backward()
                 # 重みの更新
@@ -338,7 +282,7 @@ class DNNClassifier(_TrainerBase):
                     epoch_labels = torch.cat((epoch_labels, y.to('cpu')), dim=0)
                     # 損失の計算
                     loss = self.loss_func(pred_y, y) 
-                    epoch_loss += loss.item()
+                    epoch_loss += loss.to('cpu').item()
                     # 正解数
                     _, pred_class = pred_y.max(dim=1)
                     epoch_hit += (pred_class == y).sum().item()
@@ -368,18 +312,14 @@ class DNNClassifier(_TrainerBase):
         else :
             return self.train_losses, self.train_accs, \
                    self.test_losses, self.test_accs
+
     
-    # モデルのパラメータ保存
-    def save_model(self, model_fn) -> None:
-        torch.save(self.model.state_dict(), model_fn)
-
-    # モデルのパラメータ読み込み
-    # 要確認 パラメータをロードした後、optim(model.parameters())を再生成する必要はないのか
-    def load_model(self, model_fn) -> None:
-        self.model.load_state_dict(torch.load(model_fn))
-
-    # テスト結果を確認
     def outputs_test_results(self, log_fn=None, stream=True) :
+        '''
+        テスト結果を確認
+        log_fn: 出力ファイル名
+        stream: 標準出力有無 
+        '''
         logger = getLogger('Test Results')
         logger.setLevel(logging.DEBUG)
         if stream :

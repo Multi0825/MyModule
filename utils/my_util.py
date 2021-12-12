@@ -16,17 +16,21 @@ from sklearn.metrics import cohen_kappa_score
 from sklearn.metrics import confusion_matrix
 
 
-# ルートディレクトリ取得
 def get_root_dir() :
+    '''
+    ルートディレクトリ取得
+    '''
     cwd = os.getcwd()
     root = cwd.split('\\')[0]+'/'
     return root
 
-# ファイル出力のプリントを楽に
-# txt : 出力する文字列
-# out_fn : 出力ファイル名
-# reset : ファイルを空にするか
 def print_ex(txt, out_fn=None, reset=False) :
+    '''
+    ファイル出力のプリントを楽に(Loggerで良かった)
+    txt : 出力する文字列
+    out_fn : 出力ファイル名
+    reset : ファイルを空にするか
+    '''
     if out_fn==None :
         print(txt)
     else :
@@ -78,18 +82,18 @@ def pkl_load(pkl_fn) :
     print(pkl_fn + ' has been loaded')
     return variable
 
-'''
-パスファイル(オリジナル)を読込
-パスファイル定義
-1行に1つ、Id=Path, or *Id=Path
-*Idは別のパスに配置で置換
-ex. *id1=/dir1
-    id2=*id1/dir2/
-    id3=*id1/dir3/
-先頭に#で無視
-＊特殊なディレクトリ名による不具合は知らない
-'''
 def read_path(path_fn) :
+    '''
+    パスファイル(オリジナル)を読込
+    パスファイル定義
+    1行に1つ、Id=Path, or *Id=Path
+    *Idは別のパスに配置で置換
+    ex. *id1=/dir1
+        id2=*id1/dir2/
+        id3=*id1/dir3/
+    先頭に#で無視
+    ＊特殊なディレクトリ名による不具合は知らない
+    '''
     path_dict = {} # Id:path
     ast_path = {} # *Idを記録
     with open(path_fn, mode='r') as f :
@@ -109,11 +113,12 @@ def read_path(path_fn) :
                     path_dict[path_id] = path
     return path_dict
 
-'''
-read_path()で作成したpath_dictに掲載されたディレクトリをすべて作成
-ignore_ast: *Idを無視
-'''
+
 def make_path(path_dict, ignore_ast=True) -> None :
+    '''
+    read_path()で作成したpath_dictに掲載されたディレクトリをすべて作成
+    ignore_ast: *Idを無視
+    '''
     for item in path_dict.items() :
         if ignore_ast and ('*' in item[0]) :
             pass
@@ -121,10 +126,12 @@ def make_path(path_dict, ignore_ast=True) -> None :
             os.makedirs(item[1], exist_ok=True)
 
 
-# 重複のない乱数生成
-# a, b: a <= x < b (random.randintと異なる)
-# n: 個数
 def no_duplicated_randint(a, b, n, seed=None):
+    '''
+    重複のない乱数生成
+    a, b: a <= x < b (random.randintと異なる)
+    n: 個数
+    '''
     if n > np.abs(a-b) :
         raise ValueError('Must be n>=|a-b|')
     x = [i for i in range(a, b)]
@@ -134,8 +141,10 @@ def no_duplicated_randint(a, b, n, seed=None):
         y.append(x.pop(j))
     return y
 
-# データ量を均一化(少ない方を増加)
 def equalize(a, b, random_seed=None) :
+    '''
+    データ量を均一化(少ない方を増加)
+    '''
     a = list(a)
     b = list(b)
     add_inds = []
@@ -164,21 +173,30 @@ def equalize(a, b, random_seed=None) :
     else :
         return less, more
 
-# データの順番をシャッフル
 def shuffle(data, random_seed=None) :
+    '''
+    データの順番をシャッフル
+    '''
     random.seed(random_seed)
     random.shuffle(data)
     return data
 
-# データの標準化(mean=0, var=1)
-# data: dim=2
-# axis: 
+
 def standardize(data, axis=None):
+    '''
+    データの標準化(mean=0, var=1)
+    data: dim=2
+    axis: 
+    '''
     return stats.zscore(data,axis=axis)
 
-# データ正規化(min:0, max:1)
-# data: n_ch * n_sample
+# 
 def normalize(data, axis=0) :
+    '''
+    データ正規化(min:0, max:1)
+    data: n_ch * n_sample
+    axis: 
+    '''
     mms = preprocessing.MinMaxScaler() 
     # fit_transform: データ数*特徴量を特徴量毎(縦)に正規化
     if axis==1 :

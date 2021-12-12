@@ -1,4 +1,4 @@
-
+# 途中
 # EEG Base
 # EEG CSVファイル(EmotivEpoc産＋オリジナル要素)を読み込む
 # Time:xxxHz, 

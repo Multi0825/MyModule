@@ -1,42 +1,44 @@
+# dnn関連汎用関数
 import random
 import numpy as np
 from sklearn.model_selection import train_test_split
 import torch
 import torch.nn as nn
 
-'''
-numpy.ndarray->torch.tensor
-data: ndarray
-data_type: numpy dtype
-           ex. torch.double=np.float64, torch.float=np.float32, torch.long=np.int64, 
-device: cpu or cuda:0(auto: cpu if cuda:0 is unavailable)
-'''
 def np2torch(data, data_type=np.float32) :
+    '''
+    numpy.ndarray->torch.tensor
+    data: ndarray
+    data_type: numpy dtype
+            ex. torch.double=np.float64, torch.float=np.float32, torch.long=np.int64, 
+    device: cpu or cuda:0(auto: cpu if cuda:0 is unavailable)
+    '''
     data = torch.from_numpy(data.astype(data_type)).clone()
     return data
 
 
-'''
-torch.tensor->numpy.ndarray
-data: torch.tensor
-data_type: numpy dtype
-'''
 def torch2np(data, data_type=np.float32):
+    '''
+    torch.tensor->numpy.ndarray
+    data: torch.tensor
+    data_type: numpy dtype
+    '''
     data = data.to('cpu').detach().numpy().copy().astype(data_type)
     return data
 
-'''
-訓練、テスト分割(+ torch.tensorへの変換)
-data, label: データ、ラベル(サンプル数は同じ)
-train_size: 0~1.0
-is_shuffled: シャッフルを有効化
-rand_seed: シャッフルシード値
-is_torch: torch.tensorへの変換を有効化(ndarrayのみ、ラベルは数値化が必要)
-cast_data(label)_type: データ(ラベル)の型(npで指定)
-'''
+
 def split_train_test(data, label, train_size=0.75, 
                      is_shuffled=False, rand_seed=None, 
                      cast_torch=False, cast_data_type=np.float32, cast_label_type=np.int64) :
+    '''
+    訓練、テスト分割(+ torch.tensorへの変換)
+    data, label: データ、ラベル(サンプル数は同じ)
+    train_size: 0~1.0
+    is_shuffled: シャッフルを有効化
+    rand_seed: シャッフルシード値
+    is_torch: torch.tensorへの変換を有効化(ndarrayのみ、ラベルは数値化が必要)
+    cast_data(label)_type: データ(ラベル)の型(npで指定)
+    '''
     train_x, test_x, train_y, test_y = train_test_split(data, label, train_size=train_size,
                                                         shuffle=is_shuffled, random_state=rand_seed)
     if cast_torch: 
@@ -46,16 +48,17 @@ def split_train_test(data, label, train_size=0.75,
         test_y = np2torch(test_y, data_type=cast_label_type)
     return train_x, test_x, train_y, test_y
 
-'''
-k-分割交差検証(イテレータ)
-data, label: データ、ラベル(サンプル数は同じ)
-is_shuffled: シャッフルを有効化
-rand_seed: シャッフルシード値
-is_torch: torch.tensorへの変換を有効化(ndarrayのみ、ラベルは数値化が必要)
-cast_data(label)_type: データ(ラベル)の型(npで指定)
-'''
+
 def cross_valid(data, label, k_split, is_shuffled=False, rand_seed=None,
                 cast_torch=False, cast_data_type=np.float32, cast_label_type=np.int64) :
+    '''
+    k-分割交差検証(イテレータ)
+    data, label: データ、ラベル(サンプル数は同じ)
+    is_shuffled: シャッフルを有効化
+    rand_seed: シャッフルシード値
+    is_torch: torch.tensorへの変換を有効化(ndarrayのみ、ラベルは数値化が必要)
+    cast_data(label)_type: データ(ラベル)の型(npで指定)
+    '''
     data_size = len(data)
     inds = [i for i in range(data_size)]
     # シャッフル
@@ -87,9 +90,16 @@ def cross_valid(data, label, k_split, is_shuffled=False, rand_seed=None,
             test_y = np2torch(test_y, data_type=cast_label_type)
         yield train_x, test_x, train_y, test_y
 
-# 任意の計算が可能な層
 class custom_layer(nn.Module) :
+    '''
+    任意の計算が可能な層
+    '''
     def __init__(self, func, *args, **kwargs):
+        '''
+        func: 関数
+        args: 可変長引数
+        kwargs: 可変長キーワード引数
+        '''
         super().__init__()
         self.func = func
         self.args = args
