@@ -1,18 +1,20 @@
 # Yue Yao, Deep Feature Learning for EEG Recording Using Autoencoders
 # image-wise Autoencoder
 # 参考 https://qiita.com/shushin/items/3f35a9a4200d7be74dc9
-# 中間の形が合わん
-# * 重みをEとDで共有するパターンもあった
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
 # Encoder
 class ImageWiseEncoder(nn.Module) :
+    '''
+    Image-wise Encoder
+    '''
     def __init__(self, 
                  conv1_param, pool1_param, edrop1_param, 
                  conv2_param, pool2_param, edrop2_param, 
-                 conv3_param):
+                 conv3_param, size_check=False):
         super().__init__()
 
         layers = {}
@@ -29,31 +31,34 @@ class ImageWiseEncoder(nn.Module) :
         layers['conv3'] = nn.Conv2d(**conv3_param)
         layers['relu3'] = nn.ReLU()
         self.layers =  nn.ModuleDict(layers)
+        self.size_check = size_check
 
-    def forward(self, x, size_check=False) :
-        pool_indices = [] # decoderのunpoolで使用する
+    def forward(self, x) :
+        pool_indices = [] # decoderのunpoolで使用
+        pool_size = [] # decoderのunpoolのサイズ合わせで使用
         for name,layer in self.layers.items() :
             if 'pool' in name :
+                pool_size.append(x.size())
                 x, indices = layer(x)
                 pool_indices.append(indices)
             else :
                 x = layer(x)
-            if size_check :
+            if self.size_check :
                 print('{}:{}'.format(name, x.size()))
 
-        return x, pool_indices
+        return x, pool_indices, pool_size
     
-    # クラス分類に転用する場合等のための層追加
-    def add_layer(self, key, layer) :
-        self.layers[key] = layer
         
 # Decoder
 # 動作 参考 https://qiita.com/elm200/items/621b410e69719df0e6f4
 class ImageWiseDecoder(nn.Module) :
+    '''
+    Image-wise Decoder
+    '''
     def __init__(self, 
                  deconv1_param, unpool1_param, ddrop1_param,
                  deconv2_param, unpool2_param, ddrop2_param, 
-                 deconv3_param):
+                 deconv3_param, size_check=False):
         super().__init__()
         # 下記の構造は論文を参考に
         layers = {}
@@ -69,22 +74,26 @@ class ImageWiseDecoder(nn.Module) :
 
         layers['deconv3'] = nn.ConvTranspose2d(**deconv3_param)
         self.layers =  nn.ModuleDict(layers)
+        self.size_check = size_check
 
-    def forward(self, x, pool_indices, size_check=False) :
-        p_i = 1 # poolのカウント(逆から使用)
+    def forward(self, x, pool_indices, pool_size) :
+        p_i = -1 # poolのカウント(逆から使用)
         for name,layer in self.layers.items() :
             if 'unpool' in name :
-                x = layer(x, pool_indices[-p_i])
-                p_i += 1
+                x = layer(x, indices=pool_indices[p_i], output_size=pool_size[p_i])
+                p_i -= 1
             else :
                 x = layer(x)
-            if size_check :
+            if self.size_check :
                 print('{}:{}'.format(name, x.size()))
         return x
 
 
 # AutoEncoder
 class ImageWiseAutoEncoder(nn.Module) :
+    '''
+    Image-wise AutoEncoder
+    '''
     def __init__(self, 
                  # E
                  conv1_param={'in_channels':3, 'out_channels':16, 'kernel_size':(3,3), 'stride':(1,1)}, 
@@ -97,7 +106,8 @@ class ImageWiseAutoEncoder(nn.Module) :
                  # D
                  deconv1_param=None, unpool1_param=None, ddrop1_param=None,
                  deconv2_param=None, unpool2_param=None, ddrop2_param=None, 
-                 deconv3_param=None) :
+                 deconv3_param=None, 
+                 size_check=False) :
         super().__init__()
         # EncoderとDecoderを合わせる
         if deconv1_param is None :
@@ -119,25 +129,29 @@ class ImageWiseAutoEncoder(nn.Module) :
 
         self.encoder = ImageWiseEncoder(conv1_param=conv1_param, pool1_param=pool1_param, edrop1_param=edrop1_param, 
                                         conv2_param=conv2_param, pool2_param=pool2_param, edrop2_param=edrop2_param,
-                                        conv3_param=conv3_param)
+                                        conv3_param=conv3_param, size_check=size_check)
         self.decoder = ImageWiseDecoder(deconv1_param=deconv1_param, unpool1_param=unpool1_param, ddrop1_param=ddrop1_param,
                                         deconv2_param=deconv2_param, unpool2_param=unpool2_param, ddrop2_param=ddrop2_param,
-                                        deconv3_param=deconv3_param)
+                                        deconv3_param=deconv3_param, size_check=size_check)
+        self.size_check = size_check
 
-    def forward(self, x, size_check=False) :
-        if size_check :
+    def forward(self, x) :
+        '''
+        x: n_sample x D x H x W
+        '''
+        if self.size_check :
             print('Encoder')
-        x, pool_indices = self.encoder(x, size_check)
-        if size_check :
+        x, pool_indices, pool_size = self.encoder(x)
+        if self.size_check :
             print('Decoder')
-        x = self.decoder(x, pool_indices, size_check)
+        x = self.decoder(x, pool_indices, pool_size)
         return x
 
-
+# Test
 if __name__=='__main__' :
-    # test
+    
     input = torch.rand((100, 3, 32, 32)) # n_sample x n_color x H x W
-    model = ImageWiseAutoEncoder()
-    output = model(input, True)
+    model = ImageWiseAutoEncoder(size_check=True)
+    output = model(input)
 
 

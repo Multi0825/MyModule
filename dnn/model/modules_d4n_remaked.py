@@ -41,9 +41,6 @@ def np_to_th(X, requires_grad=False, dtype=None, pin_memory=False, **tensor_kwar
     return X_tensor  
 
 # braindecode.models.functions
-# そのまま返す
-def identity(x):
-    return x
 
 # 次元を入れ替える(Batch x Ch x Value x 1 -> Batch x 1 x Value x Ch)
 def transpose_time_to_spat(x):
@@ -70,7 +67,7 @@ def squeeze_final_output(x):
         x = x[:, :, 0]
     return x
 
-# 情報表示用？
+# 関数を1つの層にしたい
 class Expression(nn.Module):
     """Compute given expression on forward pass.
     Parameters
