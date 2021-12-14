@@ -1,16 +1,12 @@
-# Pytorchのnn.Sequential形式をnn.Module形式にした
+# Deep4Net, Deep4AutoEncoder
+# Deep4Net: 元のDeep4Netのnn.Sequential形式をnn.Module形式にした
+# Deep4AutoEncoder: Deep4NetをAutoEncoderに
 ##############################
-# BraindecodeDeep4Netのソースでインポートされたもの
 import numpy as np
 import torch
 from torch import nn
 from torch.nn import init
-import modules_d4n_remaked as bd 
-'''
-from braindecode.models.modules import Expression, AvgPool2dWithConv, Ensure4d
-from braindecode.models.functions import identity, transpose_time_to_spat, squeeze_final_output
-from braindecode.util import np_to_var
-'''
+import modules_d4n_remaked as bd # BraindecodeDeep4Netで使われてたクラス、関数をまとめた
 
 # self.add_moduleは全部self.moduleに変換
 # 一部省略
