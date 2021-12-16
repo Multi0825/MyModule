@@ -122,7 +122,7 @@ class DNNRegressor(_TrainerBase):
         test_data_size = test_x.size()[0]
         test_ds = TensorDataset(test_x, test_y)
         # shuffleはシード値指定できないから無し or 手動
-        test_loader = DataLoader(test_ds, batch_size=batch_size)
+        test_loader = DataLoader(test_ds, batch_size=batch_size) # tensorは参照渡しのため必須
 
         self.model = self.model.to(self.device) # GPU使用の場合、転送
         self.model.eval()        
@@ -190,8 +190,8 @@ class DNNRegressor(_TrainerBase):
         train_ds = TensorDataset(train_x, train_y)
         test_ds = TensorDataset(test_x, test_y)
         # shuffleはシード値指定できないから無し or 手動
-        train_loader = DataLoader(train_ds, batch_size=batch_size, shuffle=False)
-        test_loader = DataLoader(test_ds, batch_size=batch_size, shuffle=False)
+        train_loader = DataLoader(train_ds, batch_size=batch_size, shuffle=False) 
+        test_loader = DataLoader(test_ds, batch_size=batch_size, shuffle=False) # tensorは参照渡しのため必須
         # GPU使用の場合、転送
         self.model = self.model.to(self.device) # GPU使用の場合、転送
         for e in range(1, epoch+1):
