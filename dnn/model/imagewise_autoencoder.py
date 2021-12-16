@@ -4,17 +4,17 @@
 
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
 # Encoder
 class ImageWiseEncoder(nn.Module) :
     '''
     Image-wise Encoder
+    when using encoder only, call single() or switch 'is_single' True
     '''
     def __init__(self, 
                  conv1_param, pool1_param, edrop1_param, 
                  conv2_param, pool2_param, edrop2_param, 
-                 conv3_param, size_check=False):
+                 conv3_param, size_check=False, is_single=False):
         super().__init__()
 
         layers = {}
@@ -32,21 +32,41 @@ class ImageWiseEncoder(nn.Module) :
         layers['relu3'] = nn.ReLU()
         self.layers =  nn.ModuleDict(layers)
         self.size_check = size_check
+        self.is_single = is_single # 単体で使う
 
     def forward(self, x) :
-        pool_indices = [] # decoderのunpoolで使用
-        pool_size = [] # decoderのunpoolのサイズ合わせで使用
-        for name,layer in self.layers.items() :
-            if 'pool' in name :
-                pool_size.append(x.size())
-                x, indices = layer(x)
-                pool_indices.append(indices)
-            else :
-                x = layer(x)
-            if self.size_check :
-                print('{}:{}'.format(name, x.size()))
+        # Encoder単体
+        if self.is_single:
+            for name,layer in self.layers.items() :
+                if 'pool' in name :
+                    x, indices = layer(x)
+                else :
+                    x = layer(x)
+                if self.size_check :
+                    print('{}:{}'.format(name, x.size()))
+            return x
+        # AEの一部
+        else :
+            pool_indices = [] # decoderのunpoolで使用
+            pool_size = [] # decoderのunpoolのサイズ合わせで使用
+            for name,layer in self.layers.items() :
+                if 'pool' in name :
+                    pool_size.append(x.size())
+                    x, indices = layer(x)
+                    pool_indices.append(indices)
+                else :
+                    x = layer(x)
+                if self.size_check :
+                    print('{}:{}'.format(name, x.size()))
 
-        return x, pool_indices, pool_size
+            return x, pool_indices, pool_size
+    
+    def single(self) : 
+        '''
+        Encoder単体で使用
+        '''
+        self.is_single = True
+        
     
         
 # Decoder

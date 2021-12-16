@@ -172,6 +172,7 @@ class Deep4Encoder(nn.Module) :
     ・Deep4Netデフォルトと流れは同じ
     ・分類器削除
     ・デフォルトでない分岐を削除、使わない引数削除
+    when using encoder only, call single() or switch 'is_single' True
     '''
     def __init__(self, 
                 in_chans, # 電極数
@@ -195,7 +196,8 @@ class Deep4Encoder(nn.Module) :
                 drop_prob=0.5,
                 batch_norm=True,
                 batch_norm_alpha=0.1,
-                size_check=False
+                size_check=False,
+                is_single=False
                 ) :
         # Encoder: 
         # block1: in->dim->conv->conv->bnorm->elu->maxpool->
@@ -241,21 +243,40 @@ class Deep4Encoder(nn.Module) :
 
         self.layers = nn.ModuleDict(layers)
         self.size_check = size_check
+        self.is_single = is_single
     
     # x: Batch x Ch x Value x 1
     def forward(self, x) :
-        pool_indices = [] # Unpool用
-        pool_size = [] # Unpool用
-        for name,layer in self.layers.items() :
-            if 'pool' in name :
-                pool_size.append(x.size())
-                x, indices = layer(x)
-                pool_indices.append(indices)
-            else :
-                x = layer(x)
-            if self.size_check :
-                print('{}:{}'.format(name, x.size()))
-        return x, pool_indices, pool_size
+        # Encoder単体
+        if self.is_single :
+            for name,layer in self.layers.items() :
+                if 'pool' in name :
+                    x, indices = layer(x)
+                else :
+                    x = layer(x)
+                if self.size_check :
+                    print('{}:{}'.format(name, x.size()))
+            return x
+        # AEの一部
+        else :
+            pool_indices = [] # Unpool用
+            pool_size = [] # Unpool用
+            for name,layer in self.layers.items() :
+                if 'pool' in name :
+                    pool_size.append(x.size())
+                    x, indices = layer(x)
+                    pool_indices.append(indices)
+                else :
+                    x = layer(x)
+                if self.size_check :
+                    print('{}:{}'.format(name, x.size()))
+            return x, pool_indices, pool_size
+    
+    def single(self) :
+        '''
+        Encoder単体で使用
+        '''
+        self.is_single = True
 
 # Decoder
 class Deep4Decoder(nn.Module) :
