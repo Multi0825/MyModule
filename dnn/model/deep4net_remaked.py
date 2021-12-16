@@ -391,6 +391,7 @@ class Deep4AutoEncoder(nn.Module) :
         if self.size_check :
             print('\nDecoder')
         x = self.decoder(x, pool_indices, pool_size)
+        return x
 
 # Test
 if __name__=='__main__': 
