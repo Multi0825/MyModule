@@ -6,7 +6,9 @@ import numpy as np
 import torch
 from torch import nn
 from torch.nn import init
-import modules_d4n_remaked as bd # BraindecodeDeep4Netで使われてたクラス、関数をまとめた
+# import modules_d4n_remaked as bd # BraindecodeDeep4Netで使われてたクラス、関数をまとめた
+from modules_d4n_remaked import Ensure4d, Expression, AvgPool2dWithConv
+from modules_d4n_remaked import transpose_time_to_spat, squeeze_final_output, np_to_th
 
 # self.add_moduleは全部self.moduleに変換
 # 一部省略
@@ -57,15 +59,15 @@ class Deep4Net(nn.Module) :
             conv_stride = 1
             pool_stride = pool_time_stride
 
-        layers['ensuredims'] = bd.Ensure4d() # Layer1
-        pool_class_dict = dict(max=nn.MaxPool2d, mean=bd.AvgPool2dWithConv)
+        layers['ensuredims'] = Ensure4d() # Layer1
+        pool_class_dict = dict(max=nn.MaxPool2d, mean=AvgPool2dWithConv)
         first_pool_class = pool_class_dict[first_pool_mode]
         later_pool_class = pool_class_dict[later_pool_mode]
 
         # Change
         # Fig1 Conv Pool Block1
         if split_first_layer: # Default
-            layers['dimshuffle'] = bd.Expression(bd.transpose_time_to_spat) # Layer2.1.1
+            layers['dimshuffle'] = Expression(transpose_time_to_spat) # Layer2.1.1
             layers['conv_time'] = nn.Conv2d(in_channels=1, out_channels=n_filters_time, 
                                             kernel_size=(filter_time_length, 1), stride=1) # Layer2.1.2
             layers['conv_spat'] = nn.Conv2d(n_filters_time, n_filters_spat, (1,in_chans), 
@@ -103,12 +105,12 @@ class Deep4Net(nn.Module) :
         # Fig1 Classification Layer
         if final_conv_length == "auto": # not Default
             self.eval()
-            out = self(bd.np_to_th(np.ones((1, in_chans, input_window_samples, 1),dtype=np.float32)))
+            out = self(np_to_th(np.ones((1, in_chans, input_window_samples, 1),dtype=np.float32)))
             n_out_time = out.cpu().data.numpy().shape[2]
             final_conv_length = n_out_time
         layers['conv_classifier'] = nn.Conv2d(n_filters[-1],n_classes,(final_conv_length, 1),bias=True) # Layer5.1
         layers['softmax'] = nn.LogSoftmax(dim=1) # Layer5.2
-        layers['squeeze'] = bd.Expression(bd.squeeze_final_output) # Layer5.3
+        layers['squeeze'] = Expression(squeeze_final_output) # Layer5.3
         
         self.layers = nn.ModuleDict(layers)
 
@@ -213,7 +215,7 @@ class Deep4Encoder(nn.Module) :
         later_pool_class = nn.MaxPool2d# pool_class_dict[later_pool_mode]
         
         # Conv Pool Block1
-        layers['dimshuffle'] = bd.Expression(bd.transpose_time_to_spat)
+        layers['dimshuffle'] = Expression(transpose_time_to_spat)
         layers['conv_time'] = nn.Conv2d(in_channels=1, out_channels=n_filters_time, 
                                         kernel_size=(filter_time_length, 1), stride=1)
         layers['conv_spat'] = nn.Conv2d(n_filters_time, n_filters_spat, (1,in_chans), 
@@ -345,7 +347,7 @@ class Deep4Decoder(nn.Module) :
                                                    stride=(conv_stride,1),bias= not batch_norm)
         layers['deconv_time'] = nn.ConvTranspose2d(in_channels=n_filters_time, out_channels=1, 
                                                    kernel_size=(filter_time_length, 1), stride=1)
-        layers['dimshuffle'] = bd.Expression(bd.transpose_time_to_spat) # 1,3次元を入れ替えるだけなので同じで良し
+        layers['dimshuffle'] = Expression(transpose_time_to_spat) # 1,3次元を入れ替えるだけなので同じで良し
 
         self.layers = nn.ModuleDict(layers)
         self.size_check = size_check
