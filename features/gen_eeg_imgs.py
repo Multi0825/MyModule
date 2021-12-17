@@ -185,7 +185,7 @@ def plt_img(img, cmap='jet', fig_fn=None) :
     cmap: カラーマップ
     fig_fn: 出力ファイル名
     '''
-    r = img.shape[0]//3+1 # 行
+    r = (img.shape[0]-1)//3+1 # 行 1,2,3->1
     c = 3 # 1行につき3枚
     fig = plt.figure(figsize=(c*3+2, r*3))# +2はカラーバーの分
     for d in range(img.shape[0]) :
