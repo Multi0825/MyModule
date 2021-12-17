@@ -7,8 +7,8 @@ import torch
 from torch import nn
 from torch.nn import init
 # import modules_d4n_remaked as bd # BraindecodeDeep4Netで使われてたクラス、関数をまとめた
-from modules_d4n_remaked import Ensure4d, Expression, AvgPool2dWithConv
-from modules_d4n_remaked import transpose_time_to_spat, squeeze_final_output, np_to_th
+from .modules_d4n_remaked import Ensure4d, Expression, AvgPool2dWithConv, \
+                                 transpose_time_to_spat, squeeze_final_output, np_to_th
 
 # self.add_moduleは全部self.moduleに変換
 # 一部省略
