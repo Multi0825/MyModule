@@ -178,26 +178,29 @@ def gen_eeg_imgs(ch_cords3d, feats, n_gridpoints,
     return imgs # n_sample x D(画像分野におけるチャンネル) x W x H 
 
 
-def plt_img(img, cmap='jet', fig_fns=None) :
+def plt_img(img, cmap='jet', fig_fn=None) :
     '''
     画像を表示or出力死体場合
     img: D x W x H
     cmap: カラーマップ
     fig_fn: 出力ファイル名
     '''
+    r = img.shape[0]//3+1 # 行
+    c = 3 # 1行につき3枚
+    fig = plt.figure(figsize=(c*3+2, r*3))# +2はカラーバーの分
     for d in range(img.shape[0]) :
         x = [i for i in range(img.shape[1])]
         y = [i for i in range(img.shape[2])]
-        z = img[d].T # 転置しないと軸が非直観的 
+        z = img[d].T # 転置しないと軸が非直観的
+        plt.subplot(r,c,d+1)
+        plt.tick_params(width=0.5)
         plt.contourf(x, y, z, cmap=cmap)
-        plt.colorbar()
-        if fig_fns is None :
-            plt.show()
-            plt.close()
-        elif len(fig_fns) == img.shape[0] :
-            plt.savefig(fig_fns[d])
-            plt.close()
-        else :
-            raise ValueError('fig_fns=[fig_fn1, fig_fn2,..., fig_fnN] N=img.shape[0]')
+        plt.colorbar(aspect=20)
+    if fig_fn is None :
+        plt.show()
+        plt.close()
+    else:
+        plt.savefig(fig_fn)
+        plt.close()
             
 
