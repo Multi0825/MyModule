@@ -45,13 +45,13 @@ def split_train_test(data : np.ndarray, label, train_size=0.75,
                                                             shuffle=is_shuffled, random_state=rand_seed)
         train_x = np.concatenate([train_x, test_x], axis=0)
         train_y = np.concatenate([train_y, test_y], axis=0)
-        test_x, test_y = np.array([])
+        test_x, test_y = np.array([]), np.array([])
     elif train_size == 0 :
         train_x, test_x, train_y, test_y = train_test_split(data, label, train_size=0.9,
                                                             shuffle=is_shuffled, random_state=rand_seed)
         test_x = np.concatenate([train_x, test_x], axis=0)
         test_y = np.concatenate([train_y, test_y], axis=0)
-        train_x, train_y = np.array([])
+        train_x, train_y = np.array([]), np.array([])
     else :
         train_x, test_x, train_y, test_y = train_test_split(data, label, train_size=train_size,
                                                             shuffle=is_shuffled, random_state=rand_seed)
