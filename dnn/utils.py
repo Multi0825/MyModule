@@ -27,20 +27,34 @@ def torch2np(data, data_type=np.float32):
     return data
 
 
-def split_train_test(data, label, train_size=0.75, 
+def split_train_test(data : np.ndarray, label, train_size=0.75, 
                      is_shuffled=False, rand_seed=None, 
                      cast_torch=False, cast_data_type=np.float32, cast_label_type=np.int64) :
     '''
     訓練、テスト分割(+ torch.tensorへの変換)
     data, label: データ、ラベル(サンプル数は同じ)
-    train_size: 訓練データのサイズ(0~1.0の少数で割合、1~n_sampleの整数で直接サンプル数)
+    train_size: 訓練データのサイズ、0~1.0の少数で割合、1~n_sampleの整数で直接サンプル数、
+                sklearn.train_test_splitでは不可能な0 or 1を指定可
     is_shuffled: シャッフルを有効化
     rand_seed: シャッフルシード値
     is_torch: torch.tensorへの変換を有効化(ndarrayのみ、ラベルは数値化が必要)
     cast_data(label)_type: データ(ラベル)の型(npで指定)
     '''
-    train_x, test_x, train_y, test_y = train_test_split(data, label, train_size=train_size,
-                                                        shuffle=is_shuffled, random_state=rand_seed)
+    if (train_size == 1.0) or (train_size == data.shape[0]) :
+        train_x, test_x, train_y, test_y = train_test_split(data, label, train_size=0.9,
+                                                            shuffle=is_shuffled, random_state=rand_seed)
+        train_x = np.concatenate([train_x, test_x], axis=0)
+        train_y = np.concatenate([train_y, test_y], axis=0)
+        test_x, test_y = np.array([])
+    elif train_size == 0 :
+        train_x, test_x, train_y, test_y = train_test_split(data, label, train_size=0.9,
+                                                            shuffle=is_shuffled, random_state=rand_seed)
+        test_x = np.concatenate([train_x, test_x], axis=0)
+        test_y = np.concatenate([train_y, test_y], axis=0)
+        train_x, train_y = np.array([])
+    else :
+        train_x, test_x, train_y, test_y = train_test_split(data, label, train_size=train_size,
+                                                            shuffle=is_shuffled, random_state=rand_seed)
     if cast_torch: 
         train_x = np2torch(train_x, data_type=cast_data_type)
         train_y = np2torch(train_y, data_type=cast_label_type)
