@@ -49,6 +49,7 @@ class _TrainerBase() :
         '''
         Early Stopping
         |loss(e)| - |loss(e-1)|がtolerance_loss超の場合がtolerance_e以上続いたときにTrue
+        デフォルト: エポック間のlossが増加した時点で終了
         epoch: 現在のエポック
         loss: 現在のロス
         tolerance_loss: ロスの増加許容範囲
