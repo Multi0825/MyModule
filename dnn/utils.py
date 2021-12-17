@@ -33,7 +33,7 @@ def split_train_test(data, label, train_size=0.75,
     '''
     訓練、テスト分割(+ torch.tensorへの変換)
     data, label: データ、ラベル(サンプル数は同じ)
-    train_size: 0~1.0
+    train_size: 訓練データのサイズ(0~1.0の少数で割合、1~n_sampleの整数で直接サンプル数)
     is_shuffled: シャッフルを有効化
     rand_seed: シャッフルシード値
     is_torch: torch.tensorへの変換を有効化(ndarrayのみ、ラベルは数値化が必要)
