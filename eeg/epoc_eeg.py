@@ -64,8 +64,7 @@ class EpocEEG():
         target_epoch : 対象エポック(None:全範囲)
         target_chs : 対象電極(None:全範囲)
         '''
-        if target_chs is None :
-            target_chs = self.ch_names
+        target_chs = self.ch_names if target_chs is None else target_chs
         # エポック指定
         if target_epoch is None:
             data, _ = self.raw[target_chs,:] # n_ch*n_sample
