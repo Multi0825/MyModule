@@ -60,6 +60,7 @@ class DNNClassifier(_TrainerBase):
         self.model = self.model.to(self.device) # GPU使用の場合、転送
         self.model.train()
         for e in range(1, epoch+1):
+            # model_copy = self.model.deepcopy() if early_stopping else None # Early Stoppingの場合Copy作成、これではtol_e>1に対応できないため
             epoch_outputs = torch.tensor([])
             epoch_labels = torch.tensor([])
             epoch_loss = 0
@@ -104,7 +105,8 @@ class DNNClassifier(_TrainerBase):
                 self.train_accs = torch.cat((self.train_accs, torch.tensor([epoch_acc])), dim=0)
             # Early Stopping 判定
             if early_stopping : 
-                if self._early_stopping(epoch, epoch_loss, tolerance_loss=tol_loss, tolerance_e=tol_e) :
+                if self._early_stopping(epoch=e, loss=epoch_loss, tolerance_loss=tol_loss, tolerance_e=tol_e) :
+                    # self.model = model_copy
                     break
         self.epoch_count += epoch
         # numpyに変換するか
@@ -213,6 +215,7 @@ class DNNClassifier(_TrainerBase):
         # GPU使用の場合、転送
         self.model = self.model.to(self.device) # GPU使用の場合、転送
         for e in range(1, epoch+1):
+            # model_copy = self.model.deepcopy() if early_stopping else None
             # 訓練
             self.model.train()
             epoch_outputs = torch.tensor([])
@@ -302,7 +305,8 @@ class DNNClassifier(_TrainerBase):
                 self.test_accs = torch.cat((self.test_accs, torch.tensor([epoch_acc])), dim=0)
             # Early Stopping 判定
             if early_stopping : 
-                if self._early_stopping(epoch, epoch_loss, tolerance_loss=tol_loss, tolerance_e=tol_e) :
+                if self._early_stopping(epoch=e, loss=epoch_loss, tolerance_loss=tol_loss, tolerance_e=tol_e) :
+                    # self.model = model_copy
                     break
         self.epoch_count += epoch
         # numpyに変換するか
