@@ -108,7 +108,7 @@ class DNNClassifier(_TrainerBase):
                 if self._early_stopping(epoch=e, loss=epoch_loss, tolerance_loss=tol_loss, tolerance_e=tol_e) :
                     # self.model = model_copy
                     break
-        self.epoch_count += epoch
+        self.epoch_count += e
         # numpyに変換するか
         if to_np :
             return torch2np(self.train_losses), torch2np(self.train_accs)
@@ -308,7 +308,7 @@ class DNNClassifier(_TrainerBase):
                 if self._early_stopping(epoch=e, loss=epoch_loss, tolerance_loss=tol_loss, tolerance_e=tol_e) :
                     # self.model = model_copy
                     break
-        self.epoch_count += epoch
+        self.epoch_count += e
         # numpyに変換するか
         if to_np :
             return torch2np(self.train_losses), torch2np(self.train_accs), \
