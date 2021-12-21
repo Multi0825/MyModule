@@ -131,19 +131,19 @@ class ImageWiseAutoEncoder(nn.Module) :
         super().__init__()
         # EncoderとDecoderを合わせる
         if deconv1_param is None :
-            deconv1_param = conv3_param.deepcopy() # 辞書型はイミュータブルなのでcopy必須
+            deconv1_param = conv3_param.copy() # 辞書型はミュータブルなのでcopy必須
             deconv1_param['in_channels'] = conv3_param['out_channels']
             deconv1_param['out_channels'] = conv3_param['in_channels']
-        unpool1_param = pool2_param.deepcopy() if unpool1_param is None else unpool1_param
-        ddrop1_param = edrop2_param.deepcopy() if ddrop1_param is None else ddrop1_param
+        unpool1_param = pool2_param.copy() if unpool1_param is None else unpool1_param
+        ddrop1_param = edrop2_param.copy() if ddrop1_param is None else ddrop1_param
         if deconv2_param is None :
-            deconv2_param = conv2_param.deepcopy()
+            deconv2_param = conv2_param.copy()
             deconv2_param['in_channels'] = conv2_param['out_channels']
             deconv2_param['out_channels'] = conv2_param['in_channels']
-        unpool2_param = pool1_param.deepcopy() if unpool2_param is None else unpool2_param
-        ddrop2_param = edrop1_param.deepcopy() if ddrop2_param is None else ddrop2_param
+        unpool2_param = pool1_param.copy() if unpool2_param is None else unpool2_param
+        ddrop2_param = edrop1_param.copy() if ddrop2_param is None else ddrop2_param
         if deconv3_param is None :
-            deconv3_param = conv1_param.deepcopy()
+            deconv3_param = conv1_param.copy()
             deconv3_param['in_channels'] = conv1_param['out_channels']
             deconv3_param['out_channels'] = conv1_param['in_channels']
 
