@@ -77,6 +77,7 @@ class _TrainerBase() :
                 self._end = epoch + tolerance_e
             # 終了タイミングで終了
             if self._end == epoch :
+                print('Early Stopping({}Epoch)'.format(epoch))
                 return True
             # 続行
             else :
