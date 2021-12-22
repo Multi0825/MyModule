@@ -65,7 +65,9 @@ class KaraoneEEG():
         cutoff[0] = 0 if cutoff[0] is None else cutoff[0]
         # エポック指定
         if target_epoch is None:
-            data, _ = self.raw[target_chs,:] # n_ch*n_sample
+            start = int(self.sfreq * cutoff[0])
+            end = cutoff[1] if cutoff[1] is None else int(self.sfreq * cutoff[1])
+            data, _ = self.raw[target_chs,start:end] # n_ch*n_sample
         else : 
             start = int(self.epoch_ranges[target_epoch,0]) + int(self.sfreq * cutoff[0])
             end = int(self.epoch_ranges[target_epoch,1])+1 if cutoff[1] is None \
@@ -92,18 +94,25 @@ class KaraoneEEG():
         return data
 
 
-    def set_data(self, data, target_epoch=None) :
+    def set_data(self, data, target_epoch=None, cutoff=[None, None]) :
         '''
         データ更新
         data : 対象データ
         target_epoch : 指定エポック(None:全範囲)
+        cutoff=[None, None] : epochの範囲を指定
         '''
+        cutoff[0] = 0 if cutoff[0] is None else cutoff[0]
         if target_epoch is None :
-            self.raw[:,:] = data
+            start = int(self.sfreq * cutoff[0])
+            end = cutoff[1] if cutoff[1] is None else int(self.sfreq * cutoff[1])
+            self.raw[:,start:end] = data
         else :
-            original_data, _= self.raw[:,int(self.epoch_ranges[target_epoch,0]):int(self.epoch_ranges[target_epoch,1])+1]
+            start = int(self.epoch_ranges[target_epoch,0]) + int(self.sfreq * cutoff[0])
+            end = int(self.epoch_ranges[target_epoch,1])+1 if cutoff[1] is None \
+                  else int(self.epoch_ranges[target_epoch,0]) + int(self.sfreq * cutoff[1])
+            original_data, _= self.raw[:,start:end]
             if data.shape == original_data.shape :
-                self.raw[:,int(self.epoch_ranges[target_epoch,0]):int(self.epoch_ranges[target_epoch,1])+1] = data # スライスでは末尾+1
+                self.raw[:,start:end] = data # スライスでは末尾+1
 
 
     def plot_data(self, target_chs=None, target_epoch=None, tmin=None, tmax=None, scalings=None, block=True, show=True, title=None, out_fn=None):
