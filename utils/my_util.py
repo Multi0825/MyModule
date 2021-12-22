@@ -126,7 +126,7 @@ def make_path(path_dict, ignore_ast=True) -> None :
             os.makedirs(item[1], exist_ok=True)
 
 
-def no_duplicated_randint(a, b, n, seed=None):
+def no_duplicated_randint(a, b, n, random_seed=None):
     '''
     重複のない乱数生成
     a, b: a <= x < b (random.randintと異なる)
@@ -137,6 +137,7 @@ def no_duplicated_randint(a, b, n, seed=None):
     x = [i for i in range(a, b)]
     y = []
     for i in range(n) :
+        random.seed(random_seed)
         j = random.randint(0, len(x)-1)
         y.append(x.pop(j))
     return y
@@ -157,11 +158,11 @@ def equalize(a, b, random_seed=None) :
     while n_more > n_less :
         # 2倍以上差があるときはn_lessだけ追加
         if n_more >= 2*n_less:
-            add_inds.extend(no_duplicated_randint(0, n_less, n_less))
+            add_inds.extend(no_duplicated_randint(0, n_less, n_less, random_seed=random_seed))
             n_less = 2 * n_less
         # さもなくば差分追加
         else :
-            add_inds.extend(no_duplicated_randint(0, n_less, n_more-n_less, seed=random_seed))
+            add_inds.extend(no_duplicated_randint(0, n_less, n_more-n_less, random_seed=random_seed))
             n_more = n_less
     # 追加
     for ai in add_inds :
