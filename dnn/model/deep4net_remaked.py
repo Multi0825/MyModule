@@ -340,7 +340,7 @@ class Deep4Decoder(nn.Module) :
         
         # Deconv Pool Block1
         layers['unpool'] = first_pool_class(kernel_size=(pool_time_length,1),stride=(pool_stride,1)) 
-        layers['conv_nonlin'] = first_nonlin ()
+        layers['deconv_nonlin'] = first_nonlin ()
         if batch_norm:
             layers['bnorm'] = nn.BatchNorm2d(n_filters_conv,momentum=batch_norm_alpha,affine=True,eps=1e-5)
         layers['deconv_spat'] = nn.ConvTranspose2d(n_filters_spat, n_filters_time, (1,in_chans), 
