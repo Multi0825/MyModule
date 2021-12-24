@@ -398,7 +398,7 @@ class Deep4AutoEncoder(nn.Module) :
 # Test
 if __name__=='__main__': 
     in_chans = 14
-    input = torch.rand((100, in_chans, 256, 1))
+    input = torch.rand((100, in_chans, 1280, 1))
     model = Deep4AutoEncoder(in_chans=in_chans, size_check=True)
     output = model(input)
     # 入力サイズtimeに強く依存
