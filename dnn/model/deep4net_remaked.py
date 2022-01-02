@@ -177,7 +177,7 @@ class Deep4Encoder(nn.Module) :
     when using encoder only, call single() or switch 'is_single' True
     '''
     def __init__(self, 
-                in_chans, # 電極数
+                in_chans=14, # 電極数
                 n_filters_time=25, # Conv Pool Block1
                 n_filters_spat=25,
                 filter_time_length=10,
@@ -289,7 +289,7 @@ class Deep4Decoder(nn.Module) :
     ・引数はEncoderと同じ
     '''
     def __init__(self, 
-                in_chans, # 電極数
+                in_chans=14, # 電極数
                 n_filters_time=25, # DeConv Pool Block1
                 n_filters_spat=25,
                 filter_time_length=10,
@@ -373,14 +373,14 @@ class Deep4AutoEncoder(nn.Module) :
     ・Deep4Netから分類機能を削除
     ・その他、機能を一部簡略化
     '''
-    def __init__(self, in_chans, **kwargs) :
+    def __init__(self, **kwargs) :
         '''
         in_chans: 電極数(必須)
         その他引数はEncoder、Decoderで同じ、書くのが面倒なので、**kwargs
         '''
         super().__init__()
-        self.encoder = Deep4Encoder(in_chans=in_chans, **kwargs)
-        self.decoder = Deep4Decoder(in_chans=in_chans, **kwargs)
+        self.encoder = Deep4Encoder(**kwargs)
+        self.decoder = Deep4Decoder(**kwargs)
         self.size_check = kwargs['size_check'] if 'size_check' in list(kwargs.keys()) else False
     
     def forward(self, x) :
@@ -399,7 +399,7 @@ class Deep4AutoEncoder(nn.Module) :
 if __name__=='__main__': 
     in_chans = 14
     input = torch.rand((100, in_chans, 1280, 1))
-    model = Deep4AutoEncoder(in_chans=in_chans, size_check=True)
+    model = Deep4AutoEncoder(size_check=True)
     output = model(input)
     # 入力サイズtimeに強く依存
     # deconv3でエラー        
