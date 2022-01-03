@@ -1,5 +1,5 @@
 # ハイパーパラメータ等を入力し、クラス分類(訓練、検証)
-import matplotlib.pyplot as plt
+import numpy as np
 import logging
 from logging import getLogger, Formatter, StreamHandler, FileHandler
 import torch
@@ -317,7 +317,22 @@ class DNNClassifier(_TrainerBase):
             return self.train_losses, self.train_accs, \
                    self.test_losses, self.test_accs
 
-    
+
+    def conf_mats(self, train=False) :
+        '''
+        混同行列生成
+        train: 訓練結果を対象に(デフォルトはテスト)
+        '''
+        n_outputs = self.train_labels.size(0) if train else self.test_labels.size(0)
+        conf_mats = []
+        for no in range(n_outputs) :
+            epoch_outputs = self.train_outputs[no] if train else self.test_outputs[no]
+            _, out2cls = epoch_outputs.max(dim=1) # 出力をクラスに変換
+            epoch_labels = self.train_labels[no].to(torch.int) if train else self.test_labels[no].to(torch.int) 
+            c_m = confusion_matrix(epoch_labels, out2cls) # 混同行列
+            conf_mats.append(c_m)
+        return np.array(conf_mats)
+
     def outputs_test_results(self, log_fn=None, stream=True) :
         '''
         テスト結果を確認
