@@ -94,6 +94,7 @@ class _TrainerBase() :
         '''
         モデル保存
         '''
+        self.model.to('cpu') # GPU上で保存すると、ロード時にもGPU上になってしまうため
         torch.save(self.model.state_dict(), model_fn)
 
     def load_model(self, model_fn) -> None:
