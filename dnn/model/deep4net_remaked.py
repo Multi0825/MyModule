@@ -395,11 +395,14 @@ class Deep4AutoEncoder(nn.Module) :
         x = self.decoder(x, pool_indices, pool_size)
         return x
 
-# Test
+# Test(from .modules_d4n...をfrom modules_d4n…にしないとエラー)
 if __name__=='__main__': 
+    torch.manual_seed(0)
     in_chans = 14
     input = torch.rand((100, in_chans, 1280, 1))
     model = Deep4AutoEncoder(size_check=True)
     output = model(input)
+    print(output[0,:,0,0])
+
     # 入力サイズtimeに強く依存
     # deconv3でエラー        
