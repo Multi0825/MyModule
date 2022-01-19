@@ -1,5 +1,4 @@
 # 自作汎用関数群
-# 2021/07/10 sakai_utilも統合(面倒だったため)
 import os
 import time
 import pickle as pkl
@@ -8,13 +7,8 @@ import random
 import matplotlib.pyplot as plt
 import scipy.stats as stats
 from sklearn import preprocessing
-from sklearn.metrics import accuracy_score
-from sklearn.metrics import precision_score
-from sklearn.metrics import recall_score
-from sklearn.metrics import f1_score
-from sklearn.metrics import cohen_kappa_score
-from sklearn.metrics import confusion_matrix
-
+import logging
+from logging import getLogger, Formatter, StreamHandler, FileHandler
 
 def get_root_dir() :
     '''
@@ -208,82 +202,85 @@ def normalize(data, axis=0) :
         raise ValueError('axis = 0 or 1')
     return nor_data
 
-# 分類結果評価
-# y_pred: 予測
-# y: 正解
-def eval_classification(y_pred, y) :
-    ac_score  = accuracy_score(y, y_pred) # 正解率
-    precision = precision_score(y, y_pred) # 適合率
-    recall    = recall_score(y, y_pred) # 再現率
-    f1        = f1_score(y, y_pred) # F1値
-    kappa     = cohen_kappa_score(y, y_pred) # κ係数
-    conf      = confusion_matrix(y, y_pred) # 混同行列
-    return ac_score, precision, recall, f1, kappa, conf
+class Logger() :
+    '''
+    Logger用クラス
+    '''
+    def __init__(self, logger_level=1, stream=True, stream_level=1) :
+        '''
+        logger_level: 基本レベル(基本レベル以下は無視)
+        stream: 標準出力有無
+        stream_level: 標準出力レベル(レベル以上のlogのみ表示)
+        '''
+        self.logger = getLogger('Logger')
+        self.logger_level = logger_level
+        self.logger.setLevel(self.logger_level)
+        self.handlers = {}
+        if stream :
+            self.handlers['stream'] = StreamHandler()
+            self.handlers['stream'].setLevel(stream_level)
+            self.logger.addHandler(self.handlers['stream'])
 
-################################## 未完 ##############################################
-# グラフパラメータ
-class FigParam() :
-    def __init__(self, x, y, label='', title='', color=None, xlabel=None, ylabel=None, xlim=None, ylim=None, plot_type='plot') :
-        self.x = x
-        self.y = y
-        self.label = label
-        self.title = title 
-        self.color = color
-        self.xlabel = xlabel
-        self.ylabel = ylabel
-        self.xlim = xlim
-        self.ylim = ylim
-        self.plot_type = plot_type
+    def log(self, msg, level=1) :
+        '''
+        ログ表示
+        msg: 本文
+        level: 出力レベル(レベル未満のHandlerには表示されない)
+        '''
+        self.logger.log(level, msg)
 
-# グラフ
-class Figure() :
-    def __init__(self,figsize=[6.4, 4.8]) :
-        self.fig = plt.figure(figsize=figsize)
-        self.fig_params = []
     
-    # 追加
-    # type: plot, scatter, bar 
-    def add_ax(self, x, y, label=None, title='', color=None, xlabel=None, ylabel=None, xlim=None, ylim=None, plot_type='plot' ) :
-        self.fig_params.append(FigParam(x, y, label, title, color, xlabel, ylabel, xlim, ylim, plot_type))
+    def add_handler(self, handler_id, file_name, mode='w', level=1, stream=False) :
+        '''
+        FileHandler(Stream Handler)追加
+        handler_id: id
+        file_name: ファイル名
+        mode: 'w', 'a'
+        level: 出力レベル(レベル以上のlogのみ表示)
+        stream: Trueの場合、StreamHandlerに(file_name, modeは無効)
+        '''
+        if handler_id in self.handlers.keys() :
+            self.remove_handler(handler_id)
+        self.handlers[handler_id] = FileHandler(file_name, mode) if not stream else StreamHandler()
+        self.handlers[handler_id].setLevel(level)
+        self.logger.addHandler(self.handlers[handler_id])
+            
+    def remove_handler(self, handler_id) :
+        '''
+        Handler削除
+        handler_id: id
+        '''
+        self.logger.removeHandler(self.handlers[handler_id])
+    
+    def set_level(self, handler_id, level) :
+        '''
+        Handlerレベル変更
+        handler_id: id
+        level: 変更後
+        '''
+        self.handlers[handler_id].setLevel(level)
 
-    # rc_params : 図のパラメータを設定
-    # ex. 
-    # 'figure.size' :　図のの大きさ(inch)
-    # 'font.size' : フォントの大きさ
-    # 'axes.grid' : グリッドを表示するか(bool)
-    def set_rcparams(self, rc_params) :
-        for param in rc_params.items() :
-            plt.rcParams[param[0]] = param[1]
-
-    # プロット
-    def plot(self, fig_shape=None, one_fig=False) :
-        n_fig = len(self.fig_params)# 画像数
-        if n_fig == 0 :
-            raise ValueError('Num of fig is 0, First add_ax')
-        n_fig = 1 if one_fig else n_fig 
-        
-        # 図形状
-        if fig_shape == None :
-            fig_shape = (n_fig, 1)
-        print(n_fig)
-        print(fig_shape)
-        if n_fig == 1 :
-            ax = self.fig.add_subplot(fig_shape[0], fig_shape[1], 1, title=self.fig_params[0].title)
-            if self.fig_params[1].label != None :
-                ax.legend()
-            for i in range(n_fig) :
-                ax.plot(self.fig_params[i].x, self.fig_params[i].y, label=self.fig_params[i].label)
-                # 本当はあとsetxlimだなんだとあるが面倒なので後で
-        else :
-            for i in range(n_fig) :
-                ax = self.fig.add_subplot(fig_shape[0], fig_shape[1], i+1, title=self.fig_params[i].title) # row, column, index 1 2
-                                                                                                         #                    3 4
-                ax.plot(self.fig_params[i].x, self.fig_params[i].y, label=self.fig_params[i].label)
-                if self.fig_params[i].label != None :
-                    ax.legend()
-        self.fig.tight_layout()
-        plt.show()
-
-    # 保存
-    def save(self, out_fn) :
-        self.fig.savefig(out_fn)
+    def set_format(self, handler_id, fmt) :
+        '''
+        フォーマット追加
+        handler_id: id
+        fmt: 特殊文字列(無効にしたい場合、'')
+        一覧(https://srbrnote.work/archives/4472)
+        %(asctime)s         -> 2019-11-03 13:59:56,644 -> 時刻 (人が読める形式)
+        %(created)f         -> 1572757196.645207 -> 時刻 (time.time()形式)
+        %(filename)s        -> test_log_formats.py -> ファイル名
+        %(funcName)s        -> test_formats -> 関数名
+        %(levelname)s       -> DEBUG -> ロギングレベルの名前
+        %(levelno)s         -> 10 -> ロギングレベルの数値
+        %(lineno)d          -> 81 -> 行番号
+        %(module)s          -> test_log_formats -> モジュールの名前
+        %(msecs)d           -> 646 -> 時刻のミリ秒部分 (milliseconds)
+        %(name)s            -> __main__ -> ロガーの名前
+        %(pathname)s        -> F:\apps\data\test_log_formats.py -> ファイルパス
+        %(process)d         -> 8676 -> プロセスID (PID)
+        %(processName)s     -> MainProcess -> プロセス名
+        %(relativeCreated)d -> 5 -> logging モジュール読み込みからの時刻 (ミリ秒)
+        %(thread)d          -> 4788 -> スレッドID
+        %(threadName)s      -> MainThread -> スレッド名
+        '''
+        self.handlers[handler_id].setFormatter(Formatter(fmt))

@@ -4,6 +4,12 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 import torch
 import torch.nn as nn
+from sklearn.metrics import accuracy_score
+from sklearn.metrics import precision_score
+from sklearn.metrics import recall_score
+from sklearn.metrics import f1_score
+from sklearn.metrics import cohen_kappa_score
+from sklearn.metrics import confusion_matrix
 
 def np2torch(data, data_type=np.float32) :
     '''
@@ -122,3 +128,17 @@ class custom_layer(nn.Module) :
     def forward(self, x) :
         x = self.func(x, *self.args, **self.kwargs)
         return x
+
+def eval_classification(y_pred, y) :
+    '''
+    分類評価指標
+    y_pred: 予測
+    y: 正解
+    '''
+    ac_score  = accuracy_score(y, y_pred) # 正解率
+    precision = precision_score(y, y_pred) # 適合率
+    recall    = recall_score(y, y_pred) # 再現率
+    f1        = f1_score(y, y_pred) # F1値
+    kappa     = cohen_kappa_score(y, y_pred) # κ係数
+    conf      = confusion_matrix(y, y_pred) # 混同行列
+    return ac_score, precision, recall, f1, kappa, conf
