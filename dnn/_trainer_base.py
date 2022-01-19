@@ -16,12 +16,15 @@ class _TrainerBase() :
         loss_args: 損失関数引数(辞書型)
         optim: 最適化関数
         optim_args: 最適化関数引数(辞書型、model.parameters()以外)
-        init_seed: モデルのパラメータの初期化のシード(ただここでシード指定しても、いたる箇所で乱数の影響があるため固定は完全同一は無理)
+        init_seed: モデルのパラメータの初期化のシード
         device: 使用デバイス
         '''
-        if init_seed is not None :
-            torch.manual_seed(init_seed)
         self.device = device if torch.cuda.is_available() else 'cpu'
+        self.init_seed = init_seed
+        if init_seed is not None :
+            torch.manual_seed(self.init_seed)
+            if device is not 'cpu' :
+                torch.cuda.manual_seed(self.init_seed)
         self.model = model(**model_args) # モデル
         self.loss_func = loss_func(**loss_args) # 損失関数
         self.optim = optim(self.model.parameters(), **optim_args) # 最適化関数
