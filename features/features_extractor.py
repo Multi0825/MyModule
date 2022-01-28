@@ -6,7 +6,7 @@ import pywt
 # 窓関数を適用し、n_win*n_ch*frame_sizeのデータ作成
 # data : n_ch * n_sample
 # win_type : 窓関数種類(ハミング)
-# frame_size : 窓長(None: All)
+# frame_size : 窓長サンプル点(None: All)
 # overlap_rate : フレームサイズに対するオーバーラップ率0~1(None: 0)
 def window(data, win_type='hamming', frame_size=None, overlap_rate=0) :
     frame_size = data.shape[1] if frame_size is None else frame_size
@@ -96,14 +96,14 @@ def stats_features2(data, axis=2) :
     return np.array(f)
 
 # FFTにより振幅スペクトルを計算
-# *メモ
-# データ点の数は2のべき乗であるべき(らしい)
-# 横軸はサンプリング周波数の半分が最大値(左右対称)
-# サンプリング周波数sfreqHz, データ長n点では1/(n/sfreq)Hz刻み
-# scipy.fftではindex0は直流成分(使えない)
-# 256点(0~255)あった場合,[1]=[255(-1)],[127]=[129], [128]は1つ(基本的には1~n/2) 
 # data: np.array, dim=1~3,(ex. n_win * n_ch * n_value)
 # min_dim, max_dim: min_dim~max_dim次元まで使用 
+# *メモ
+#   データ点の数は2のべき乗であるべき(らしい)
+#   横軸はサンプリング周波数の半分が最大値(左右対称)
+#   サンプリング周波数sfreqHz, データ長n点では1/(n/sfreq)Hz刻み
+#   scipy.fftではindex0は直流成分(使えない)
+#   256点(0~255)あった場合,[1]=[255(-1)],[127]=[129], [128]は1つ(基本的には1~n/2) 
 def amp_spectrum(data, n=None, min_dim=1, max_dim=None) :
     n = data.shape[data.ndim-1] if n is None else n
     max_dim = n//2 if max_dim is None else max_dim 
