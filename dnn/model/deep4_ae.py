@@ -4,7 +4,7 @@
 
 import torch.nn as nn
 # import modules_d4n_remaked as bd # BraindecodeDeep4Netで使われてたクラス、関数をまとめた
-from modules_d4n_remaked import Ensure4d, Expression, AvgPool2dWithConv, \
+from .modules_d4n_remaked import Ensure4d, Expression, AvgPool2dWithConv, \
                                  transpose_time_to_spat, squeeze_final_output, np_to_th
 
 
@@ -176,7 +176,7 @@ class Deep4Decoder(nn.Module) :
                                                                     affine=True,eps=1e-5) 
                 layers['nonlin_{}'.format(n_l)] = later_nonlin()
         
-        # L1
+        # L1, 1.5
         layers['unpool'] = first_pool_class(kernel_size=(pool_time_length,1),stride=(pool_stride,1)) 
         layers['deconv_nonlin'] = first_nonlin ()
         n_filters_conv = n_filters_spat if n_layers > 1 else n_filters_time
