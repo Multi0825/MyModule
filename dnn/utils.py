@@ -110,7 +110,7 @@ def cross_valid(data, label, k_split, is_shuffled=False, rand_seed=None,
             test_y = np2torch(test_y, data_type=cast_label_type)
         yield train_x, test_x, train_y, test_y
 
-class custom_layer(nn.Module) :
+class CustomLayer(nn.Module) :
     '''
     任意の計算が可能な層
     '''

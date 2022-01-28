@@ -51,7 +51,32 @@ def transpose_time_to_spat(x):
         tensor in which last and first dimensions are swapped
     """
     return x.permute(0, 3, 2, 1)
-# 
+
+# 関数を1つの層にしたい
+class Expression(nn.Module):
+    """Compute given expression on forward pass.
+    Parameters
+    ----------
+    expression_fn : callable
+        Should accept variable number of objects of type
+        `torch.autograd.Variable` to compute its output.
+    """
+    def __init__(self, expression_fn):
+        super(Expression, self).__init__()
+        self.expression_fn = expression_fn
+
+    def forward(self, *x):
+        return self.expression_fn(*x)
+
+    def __repr__(self):
+        if hasattr(self.expression_fn, "func") and hasattr(self.expression_fn, "kwargs"):
+            expression_str = "{:s} {:s}".format(self.expression_fn.func.__name__, str(self.expression_fn.kwargs))
+        elif hasattr(self.expression_fn, "__name__"):
+            expression_str = self.expression_fn.__name__
+        else:
+            expression_str = repr(self.expression_fn)
+        return (self.__class__.__name__ + "(expression=%s) " % expression_str)
+
 def squeeze_final_output(x):
     """Removes empty dimension at end and potentially removes empty time
      dimension. It does  not just use squeeze as we never want to remove
@@ -66,40 +91,6 @@ def squeeze_final_output(x):
     if x.size()[2] == 1:
         x = x[:, :, 0]
     return x
-
-# 関数を1つの層にしたい
-class Expression(nn.Module):
-    """Compute given expression on forward pass.
-    Parameters
-    ----------
-    expression_fn : callable
-        Should accept variable number of objects of type
-        `torch.autograd.Variable` to compute its output.
-    """
-
-    def __init__(self, expression_fn):
-        super(Expression, self).__init__()
-        self.expression_fn = expression_fn
-
-    def forward(self, *x):
-        return self.expression_fn(*x)
-
-    def __repr__(self):
-        if hasattr(self.expression_fn, "func") and hasattr(
-            self.expression_fn, "kwargs"
-        ):
-            expression_str = "{:s} {:s}".format(
-                self.expression_fn.func.__name__, str(self.expression_fn.kwargs)
-            )
-        elif hasattr(self.expression_fn, "__name__"):
-            expression_str = self.expression_fn.__name__
-        else:
-            expression_str = repr(self.expression_fn)
-        return (
-            self.__class__.__name__ +
-            "(expression=%s) " % expression_str
-        )
-
 
    
 # 平均pool
