@@ -174,9 +174,9 @@ class Deep4Decoder(nn.Module) :
                 if batch_norm:
                     layers['bnorm_{}'.format(n_l)] = nn.BatchNorm2d(n_filters[n_l-2], momentum=batch_norm_alpha,
                                                                     affine=True,eps=1e-5) 
-                layers['nonlin_{}'] = later_nonlin()
+                layers['nonlin_{}'.format(n_l)] = later_nonlin()
         
-        # Deconv Pool Block1
+        # L1
         layers['unpool'] = first_pool_class(kernel_size=(pool_time_length,1),stride=(pool_stride,1)) 
         layers['deconv_nonlin'] = first_nonlin ()
         n_filters_conv = n_filters_spat if n_layers > 1 else n_filters_time
