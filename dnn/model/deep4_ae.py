@@ -13,10 +13,8 @@ from .modules_d4n_remaked import Ensure4d, Expression, AvgPool2dWithConv, \
 # Encoder
 class Deep4Encoder(nn.Module) :
     '''
-    Deep4Encoder
-    ・Deep4Netデフォルトと流れは同じ(分類部分なし)
-    ・デフォルトでない分岐を削除、使わない引数削除
-    when using encoder only, call single() or switch 'is_single' True
+    Deep4AutoEncoderのEncoder
+    単体で使用する場合はsingleを呼び出す(unpooling用の変数を返さない)
     '''
     def __init__(self, 
                 n_convs,
@@ -40,14 +38,6 @@ class Deep4Encoder(nn.Module) :
                 size_check=False,
                 is_single=False,               
                 ) :
-        '''
-        *Deep4Netに追加した引数のみ記載
-        n_convs: 畳み込み層数(1, 2, 3, 4, 5)
-        n_filters_N: 各畳み込み層の出力チャンネル数
-        filter_length_N: 各畳み込み層の出力のカーネルサイズに関連(2のみ電極方向)
-        size_check: forward時、中間出力のサイズを確認
-        is_single: Encoderのみで使用する場合(Decoder用のpool_indices, pool_sizeを返さない)
-        '''
         super().__init__() 
         layers = {} 
         conv_stride = 1
@@ -104,8 +94,8 @@ class Deep4Encoder(nn.Module) :
             return x
         # AEの一部として
         else :
-            pool_indices = [] # Unpool用
-            pool_size = [] # Unpool用
+            pool_indices = [] # Unpooling用
+            pool_size = [] # Unpooling用
             for name,layer in self.layers.items() :
                 if 'pool' in name :
                     pool_size.append(x.size())
@@ -127,10 +117,7 @@ class Deep4Encoder(nn.Module) :
 # Decoder
 class Deep4Decoder(nn.Module) :
     '''
-    Deep4Decoder
-    ・Deep4Encoderの逆流
-    ・ただしdropoutやbnromの場所を調整
-    ・引数はEncoderと同じ
+    Deep4AutoEncoderのDecoder(単体使用不可)
     '''
     def __init__(self, 
                 n_convs,
@@ -152,8 +139,7 @@ class Deep4Decoder(nn.Module) :
                 batch_norm=True,
                 batch_norm_alpha=0.1,
                 size_check=False,            
-                ) :
-        # Decoder: 
+                ) : 
         super().__init__()
         layers = {}
         conv_stride = 1
@@ -212,14 +198,18 @@ class Deep4Decoder(nn.Module) :
 class Deep4AutoEncoder(nn.Module) :
     '''
     Deep4AutoEncoder
-    ・Deep4Encoderを改変し、AutoEncoder
-    ・Deep4Netから分類機能を削除
-    ・その他、機能を一部簡略化
+    ・Deep4Netを改変し、AutoEncoder化
+    ・Deep4Netから分類機能を削除、機能を一部簡略化
     '''
     def __init__(self, n_convs, **kwargs) :
         '''
-        n_convs: 畳み込み層数
-        他引数はEncoder、Decoderで同じ、書くのが面倒なので、**kwargs
+        引数はEncoder,Decoder共通(*Deep4Netから追加、変更した引数のみ記載)
+        n_convs: 畳み込み層数(1, 2, 3, 4, 5)
+        n_filters_N: 各畳み込み層の出力チャンネル数
+        filter_length_N: 各畳み込み層の出力のカーネルサイズに関連(2のみ電極方向)
+        size_check: forward時、中間出力のサイズを確認
+        is_single: Encoderのみで使用する場合(Decoder用のpool_indices, pool_sizeを返さない)
+        *以下略
         '''
         super().__init__()
         if (n_convs<1) or (n_convs>5) :
