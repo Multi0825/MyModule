@@ -220,7 +220,7 @@ class Deep4AutoEncoder(nn.Module) :
     
     def forward(self, x) :
         '''
-        x: n_sample x n_ch x n_value x 1
+        x: n_samples x n_chs x n_values x 1
         '''
         if self.size_check :
             print('Encoder')
