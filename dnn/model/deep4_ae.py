@@ -213,7 +213,7 @@ class Deep4AutoEncoder(nn.Module) :
         '''
         super().__init__()
         if (n_convs<1) or (n_convs>5) :
-            raise ValueError('n_convs = 1, 1.5, 2, 3, 4 ')
+            raise ValueError('n_convs = 1, 2, 3, 4, 5')
         self.encoder = Deep4Encoder(n_convs=n_convs, **kwargs)
         self.decoder = Deep4Decoder(n_convs=n_convs, **kwargs)
         self.size_check = kwargs['size_check'] if 'size_check' in list(kwargs.keys()) else False
