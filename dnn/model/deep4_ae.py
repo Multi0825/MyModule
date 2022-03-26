@@ -62,7 +62,7 @@ class Deep4Encoder(nn.Module) :
         if batch_norm:
             layers['bnorm_2'] = nn.BatchNorm2d(n_filters_prev, momentum=batch_norm_alpha, affine=True,eps=1e-5) 
         layers['nonlin_2'] = first_nonlin() # Activate
-        layers['pool_2'] = first_pool_class(kernel_size=(pool_time_length,1),stride=(pool_stride,1), return_indices=True) # nn.MaxPool2d
+        layers['pool_2'] = first_pool_class(kernel_size=pool_kernel_size, stride=pool_stride, return_indices=True) # nn.MaxPool2d
 
         # Conv3~5
         for n_c in range(3, n_convs+1) :
