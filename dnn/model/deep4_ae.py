@@ -174,7 +174,7 @@ class Deep4Decoder(nn.Module) :
         layers['deconv_nonlin_2'] = first_nonlin ()
         
         layers['deconv_1'] = nn.ConvTranspose2d(in_channels=n_filters[0], out_channels=1, 
-                                                   kernel_size=kernel_sizes[0], stride=1)
+                                                kernel_size=kernel_sizes[0], stride=1)
         layers['dimshuffle'] = Expression(transpose_time_to_spat) # 1,3次元を入れ替えるだけなので同じで良し
 
         self.layers = nn.ModuleDict(layers)
