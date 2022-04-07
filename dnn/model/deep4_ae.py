@@ -56,7 +56,7 @@ class Deep4Encoder(nn.Module) :
                                      kernel_size=kernel_sizes[0], stride=1)
         # Conv2
         if n_convs > 1 :
-            layers['conv_2'] = nn.Conv2d(n_filters_1, n_filters[1], kernel_sizes[1], 
+            layers['conv_2'] = nn.Conv2d(n_filters[0], n_filters[1], kernel_sizes[1], 
                                             stride=(conv_stride,1), bias= not batch_norm) 
         n_filters_prev = n_filters[1] if n_convs>1 else n_filters[0]
         if batch_norm:
@@ -95,17 +95,17 @@ class Deep4Encoder(nn.Module) :
         # AEの一部として
         else :
             pool_indices = [] # Unpooling用
-            pool_size = [] # Unpooling用
+            pool_sizes = [] # Unpooling用
             for name,layer in self.layers.items() :
                 if 'pool' in name :
-                    pool_size.append(x.size())
+                    pool_sizes.append(x.size())
                     x, indices = layer(x)
                     pool_indices.append(indices)
                 else :
                     x = layer(x)
                 if self.size_check :
                     print('{}:{}'.format(name, x.size()))
-            return x, pool_indices, pool_size
+            return x, pool_indices, pool_sizes
     
     def single(self) :
         '''
@@ -156,7 +156,7 @@ class Deep4Decoder(nn.Module) :
         for n_c in range(n_convs, 2, -1) : 
             layers['unpool_{}'.format(n_c)] = later_pool_class(kernel_size=pool_kernel_size,stride=pool_stride)
             layers['drop_{}'.format(n_c)] = nn.Dropout(p=drop_prob)
-            layers['deconv_{}'.format(n_c)] = nn.ConvTranspose2d(n_filters[n_c-1], n_filters[n_c-2], kernel_sizes[n_c],
+            layers['deconv_{}'.format(n_c)] = nn.ConvTranspose2d(n_filters[n_c-1], n_filters[n_c-2], kernel_sizes[n_c-1],
                                                                  stride=(conv_stride, 1), bias=not batch_norm) 
             if batch_norm:
                 layers['bnorm_{}'.format(n_c)] = nn.BatchNorm2d(n_filters[n_c-2], momentum=batch_norm_alpha,
@@ -180,11 +180,11 @@ class Deep4Decoder(nn.Module) :
         self.layers = nn.ModuleDict(layers)
         self.size_check = size_check
         
-    def forward(self, x, pool_indices, pool_size) :
+    def forward(self, x, pool_indices, pool_sizes) :
         p_i = -1 # pool_indices, sizeのカウント(逆順)
         for name,layer in self.layers.items() :
             if 'unpool' in name :
-                x = layer(x, indices=pool_indices[p_i], output_size=pool_size[p_i])
+                x = layer(x, indices=pool_indices[p_i], output_size=pool_sizes[p_i])
                 p_i -= 1 
             else :
                 x = layer(x)
@@ -224,10 +224,10 @@ class Deep4AutoEncoder(nn.Module) :
         '''
         if self.size_check :
             print('Encoder')
-        x, pool_indices, pool_size = self.encoder(x)
+        x, pool_indices, pool_sizes = self.encoder(x)
         if self.size_check :
             print('\nDecoder')
-        x = self.decoder(x, pool_indices, pool_size)
+        x = self.decoder(x, pool_indices, pool_sizes)
         return x
 
       
