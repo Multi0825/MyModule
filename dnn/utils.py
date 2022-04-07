@@ -15,9 +15,8 @@ def np2torch(data, data_type=None) :
     '''
     numpy.ndarray->torch.tensor
     data: ndarray
-    data_type: numpy dtype
-            ex. torch.double=np.float64, torch.float=np.float32, torch.long=np.int64, 
-    device: cpu or cuda:0(auto: cpu if cuda:0 is unavailable)
+    data_type: numpy dtype.(if setting None, the type is not changed)
+               ex. torch.double=np.float64, torch.float=np.float32, torch.long=np.int64, 
     '''
     data = torch.from_numpy(data).clone() if data_type is None \
            else torch.from_numpy(data.astype(data_type)).clone()
@@ -25,13 +24,14 @@ def np2torch(data, data_type=None) :
     return data
 
 
-def torch2np(data, data_type=np.float32):
+def torch2np(data, data_type=None):
     '''
     torch.tensor->numpy.ndarray
     data: torch.tensor
-    data_type: numpy dtype
+    data_type: numpy dtype(if setting None, the type is not changed)
     '''
-    data = data.to('cpu').detach().numpy().copy().astype(data_type)
+    data = data.to('cpu').detach().numpy().copy() if data_type is None \
+           else data.to('cpu').detach().numpy().copy().astype(data_type)
     return data
 
 
