@@ -1,4 +1,5 @@
 # ハイパーパラメータ等を入力し、クラス分類(訓練、検証)
+from os import access
 import numpy as np
 import logging
 from logging import getLogger, Formatter, StreamHandler, FileHandler
@@ -320,7 +321,9 @@ class DNNClassifier(_TrainerBase):
 
     def conf_mats(self, train=False) :
         '''
-        混同行列生成
+        混同行列生成(epoch x conf_mat)
+        TN FP
+        FN TP
         train: 訓練結果を対象に(デフォルトはテスト)
         '''
         n_outputs = self.train_labels.size(0) if train else self.test_labels.size(0)
@@ -332,6 +335,22 @@ class DNNClassifier(_TrainerBase):
             c_m = confusion_matrix(epoch_labels, out2cls) # 混同行列
             conf_mats.append(c_m)
         return np.array(conf_mats)
+    
+    def scores(self, train=False) :
+        '''
+        分類問題評価指標(Accuracy, Precision, Recall, Specificiy)取得(epoch x conf_mat)
+        train: 訓練結果を対象
+        '''
+        conf_mats = self.conf_mats(train=train)
+        names_confs = {'TN':conf_mats[:,0,0], 'FP':conf_mats[:,0,1], 'FN':conf_mats[:,1,0], 'TP':conf_mats[:,1,1] }
+        acc = (names_confs['TP']+names_confs['TN']) / np.sum(conf_mats, axis=0) # 正解率 TP+TN/ALL
+        prec = names_confs['TP'] / (names_confs['TP']+names_confs['FP']) # 適合率 TP/(TP+FP)
+        rec = names_confs['TP'] / (names_confs['TP']+names_confs['FN'])# 再現率 TP/(TP+FN)
+        spec = names_confs['TP'] / (names_confs['FP']+names_confs['TN'])# 特異率 TN/(FP+TN)
+        return acc, prec, rec, spec
+
+
+
 
     def outputs_test_results(self, log_fn=None, stream=True) :
         '''
