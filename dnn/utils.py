@@ -11,25 +11,27 @@ from sklearn.metrics import f1_score
 from sklearn.metrics import cohen_kappa_score
 from sklearn.metrics import confusion_matrix
 
-def np2torch(data, data_type=np.float32) :
+def np2torch(data, data_type=None) :
     '''
     numpy.ndarray->torch.tensor
     data: ndarray
-    data_type: numpy dtype
-            ex. torch.double=np.float64, torch.float=np.float32, torch.long=np.int64, 
-    device: cpu or cuda:0(auto: cpu if cuda:0 is unavailable)
+    data_type: numpy dtype.(if setting None, the type is not changed)
+               ex. torch.double=np.float64, torch.float=np.float32, torch.long=np.int64, 
     '''
-    data = torch.from_numpy(data.astype(data_type)).clone()
+    data = torch.from_numpy(data).clone() if data_type is None \
+           else torch.from_numpy(data.astype(data_type)).clone()
+
     return data
 
 
-def torch2np(data, data_type=np.float32):
+def torch2np(data, data_type=None):
     '''
     torch.tensor->numpy.ndarray
     data: torch.tensor
-    data_type: numpy dtype
+    data_type: numpy dtype(if setting None, the type is not changed)
     '''
-    data = data.to('cpu').detach().numpy().copy().astype(data_type)
+    data = data.to('cpu').detach().numpy().copy() if data_type is None \
+           else data.to('cpu').detach().numpy().copy().astype(data_type)
     return data
 
 
@@ -44,7 +46,7 @@ def split_train_test(data : np.ndarray, label, train_size=0.75,
     is_shuffled: シャッフルを有効化
     rand_seed: シャッフルシード値
     is_torch: torch.tensorへの変換を有効化(ndarrayのみ、ラベルは数値化が必要)
-    cast_data(label)_type: データ(ラベル)の型(npで指定)
+    cast_data(label)_type: データ(ラベル)の型(npで指定),Noneでそのまま
     '''
     if (train_size == 1.0) or (train_size == data.shape[0]) :
         train_x, test_x, train_y, test_y = train_test_split(data, label, train_size=0.9,

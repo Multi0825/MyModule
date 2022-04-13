@@ -167,14 +167,13 @@ class Deep4Decoder(nn.Module) :
         layers['unpool_2'] = first_pool_class(kernel_size=pool_kernel_size,stride=pool_stride) 
         if n_convs > 1 :
             layers['deconv_2'] = nn.ConvTranspose2d(n_filters[1], n_filters[0], kernel_sizes[1], 
-                                                    stride=(conv_stride,1),bias= not batch_norm)
-        n_filters_prev = n_filters[1] if n_convs > 1 else n_filters[0] 
+                                                    stride=(conv_stride,1),bias= not batch_norm) 
         if batch_norm:
-            layers['bnorm_2'] = nn.BatchNorm2d(n_filters_prev, momentum=batch_norm_alpha,affine=True,eps=1e-5)
+            layers['bnorm_2'] = nn.BatchNorm2d(n_filters[0], momentum=batch_norm_alpha,affine=True,eps=1e-5)
         layers['deconv_nonlin_2'] = first_nonlin ()
         
         layers['deconv_1'] = nn.ConvTranspose2d(in_channels=n_filters[0], out_channels=1, 
-                                                   kernel_size=kernel_sizes[0], stride=1)
+                                                kernel_size=kernel_sizes[0], stride=1)
         layers['dimshuffle'] = Expression(transpose_time_to_spat) # 1,3次元を入れ替えるだけなので同じで良し
 
         self.layers = nn.ModuleDict(layers)
