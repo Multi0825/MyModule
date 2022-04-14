@@ -343,11 +343,11 @@ class DNNClassifier(_TrainerBase):
         '''
         conf_mats = self.conf_mats(train=train)
         names_confs = {'TN':conf_mats[:,0,0], 'FP':conf_mats[:,0,1], 'FN':conf_mats[:,1,0], 'TP':conf_mats[:,1,1] }
-        acc = (names_confs['TP']+names_confs['TN']) / np.sum(conf_mats, axis=0) # 正解率 TP+TN/ALL
-        prec = names_confs['TP'] / (names_confs['TP']+names_confs['FP']) # 適合率 TP/(TP+FP)
-        rec = names_confs['TP'] / (names_confs['TP']+names_confs['FN'])# 再現率 TP/(TP+FN)
-        spec = names_confs['TP'] / (names_confs['FP']+names_confs['TN'])# 特異率 TN/(FP+TN)
-        return acc, prec, rec, spec
+        accs = (names_confs['TP']+names_confs['TN']) / np.sum(conf_mats, axis=0) # 正解率 TP+TN/ALL
+        precs = names_confs['TP'] / (names_confs['TP']+names_confs['FP']) # 適合率 TP/(TP+FP)
+        recs = names_confs['TP'] / (names_confs['TP']+names_confs['FN'])# 再現率 TP/(TP+FN)
+        specs = names_confs['TN'] / (names_confs['FP']+names_confs['TN'])# 特異率 TN/(FP+TN)
+        return accs, precs, recs, specs
 
 
 
