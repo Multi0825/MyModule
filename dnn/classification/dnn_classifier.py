@@ -343,7 +343,6 @@ class DNNClassifier(_TrainerBase):
         '''
         conf_mats = self.conf_mats(train=train)
         names_confs = {'TN':conf_mats[:,0,0], 'FP':conf_mats[:,0,1], 'FN':conf_mats[:,1,0], 'TP':conf_mats[:,1,1] }
-        print(np.sum(conf_mats.reshape((conf_mats.shape[0], -1)), axis=0).shape)
         accs = (names_confs['TP']+names_confs['TN']) / np.sum(conf_mats.reshape((conf_mats.shape[0], -1)), axis=1) # 正解率 TP+TN/ALL
         precs = names_confs['TP'] / (names_confs['TP']+names_confs['FP']) # 適合率 TP/(TP+FP)
         recs = names_confs['TP'] / (names_confs['TP']+names_confs['FN'])# 再現率 TP/(TP+FN)
