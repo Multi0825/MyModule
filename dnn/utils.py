@@ -45,7 +45,7 @@ def split_train_test(data : np.ndarray, label, train_size=0.75,
                 sklearn.train_test_splitでは不可能な0 or 1を指定可
     is_shuffled: シャッフルを有効化
     rand_seed: シャッフルシード値
-    is_torch: torch.tensorへの変換を有効化(ndarrayのみ、ラベルは数値化が必要)
+    cast_torch: torch.tensorへの変換を有効化(ndarrayのみ、ラベルは数値化が必要)
     cast_data(label)_type: データ(ラベル)の型(npで指定),Noneでそのまま
     '''
     if (train_size == 1.0) or (train_size == data.shape[0]) :
