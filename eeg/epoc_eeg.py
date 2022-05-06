@@ -42,7 +42,7 @@ class EpocEEG():
         else :
             self.epoch_labels = [0 for e in range(self.n_epoch)]
             self.labels = ['0']
-        # エポックの範囲(サンプル番号)
+        # エポックの範囲(データ点番号)
         self.epoch_ranges = np.zeros((self.n_epoch, 2)) # エポックの範囲(開始点, 終了点)
         for e in range(self.n_epoch) :
             self.epoch_ranges[e,0] = df[df['Epoch']==e].index[0]
@@ -67,7 +67,7 @@ class EpocEEG():
         target_chs = self.ch_names if target_chs is None else target_chs
         # エポック指定
         if target_epoch is None:
-            data, _ = self.raw[target_chs,:] # n_ch*n_sample
+            data, _ = self.raw[target_chs,:] # n_ch*n_data
         else : 
             data, _ = self.raw[target_chs,int(self.epoch_ranges[target_epoch,0]):int(self.epoch_ranges[target_epoch,1])+1]
         return data
@@ -76,7 +76,7 @@ class EpocEEG():
     def get_split_data(self, target_epochs=None, target_labels=None, target_chs=None) :
         '''
         データ取得
-        3次元(target_epochs(labels) x target_chs x n_sample)に加工ver.
+        3次元(target_epochs(labels) x target_chs x n_data)に加工ver.
         target_epochs: 対象エポック(None: 全エポック)
         target_labels: 対象ラベル(target_epochs=Noneのとき)
         target_chs: 対象電極(None:全範囲)
