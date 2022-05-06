@@ -30,8 +30,7 @@ class DNNClassifier(_TrainerBase):
         '''
         super().__init__(model, model_args, loss_func, loss_args, 
                          optim, optim_args, init_seed, device)
-        self.train_accs = torch.tensor([]) # 各エポックの精度
-        self.test_accs = torch.tensor([]) # 各エポックの精度
+
     
     def train(self, train_x, train_y, epoch, batch_size, 
               extra_func=None, early_stopping=False, tol_loss=0, tol_e=0,
