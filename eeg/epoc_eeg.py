@@ -245,39 +245,45 @@ class EpocEEG():
         return new_data
     
 
-    def save_data(self, csv_fn, labels_fn=None, include_labels=False) : 
+    def save_data(self, csv_fn) : 
         '''
         データ保存
         out_path : 保存ディレクトリ(無ければ作成)
         csv_fn : データCSVファイル名
-        labels_fn : ラベルファイル(Noneなら無し)
-        include_labels : CSVにラベルのカラムを含めるか
         '''
-        # 時間、エポック、電極(データ)のカラムを作成
         df = pd.DataFrame()
+        # Time
         time = self.raw.times
         df['Time:{}Hz'.format(int(self.sfreq))] = time
+        # Epoch
         epoch = np.zeros((len(time)))
         for e in range(self.n_epoch):
             epoch[int(self.epoch_ranges[e,0]):int(self.epoch_ranges[e,1])+1] = e
         df['Epoch'] = epoch
+        # Ch(Data)
         ch_datas = self.get_data().T * 1e+6 
         df[self.ch_names] = ch_datas
-        # ラベルを含める
-        if include_labels :
-            label = []
+        # Label
+        label = []
+        for e in range(self.n_epoch) :
+            label_range = int(self.epoch_ranges[e,1] - self.epoch_ranges[e,0]) + 1
+            label.extend([self.epoch_labels[e] for i in range(label_range)])
+        df['Label'] = label
+        # Stage
+        stage = []
+        if len(self.stages)>1 :
             for e in range(self.n_epoch) :
-                label_range = int(self.epoch_ranges[e,1] - self.epoch_ranges[e,0]) + 1
-                label.extend([self.epoch_labels[e] for i in range(label_range)])
-            df['Label'] = label
+                for n_stg in range(len(self.stages)) :
+                    next_stg = self.stages[n_stg+1] if n_stg<len(self.stages)-1 else self.stages[0]
+                    start = self.stage_starts[self.stages[n_stg]][e]
+                    end = self.stage_starts[next_stg][e]-1
+                    stage.extend([self.stages[n_stg] for i in range(end-start+1)])
+        else :
+            stage = [self.stages[0] for t in range(len(time))]
+        df['Stage'] = stage
         # CSV出力
         df.to_csv(csv_fn, index=False)
         print(csv_fn+' has been created')
-        # ラベル出力
-        if labels_fn is not None :
-            with open(labels_fn, mode='w') as f:
-                f.write('\n'.join(self.epoch_labels))
-            print(labels_fn+' has been created')
         
 
 
