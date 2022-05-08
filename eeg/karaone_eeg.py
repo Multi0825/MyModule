@@ -45,9 +45,9 @@ class KaraoneEEG():
             self.epoch_ranges[e,0] = df[df['Epoch']==e].index[0]
             self.epoch_ranges[e,1] = df[df['Epoch']==e].index[-1] 
         
-        # ステージ
+        # ステージ(面倒な仕様にしてしまった)
         self.stages = list(np.unique(df['Stage'].values))
-        self.stage_starts = dict() # ステージの開始点stage x epoch(全てのステージは連続を前提、次のステージの開始点-1が終了点)
+        self.stage_starts = dict() # ステージの開始点 stg x [start_e0, ... start_eN](全てのステージは連続を前提、次のステージの開始点-1が終了点)
         for stg in self.stages :
             self.stage_starts[stg] = []
             for e in range(self.n_epoch) :
@@ -281,9 +281,15 @@ class KaraoneEEG():
         df['Label'] = label
         # ステージ
         stage = []
-        for e in range(self.n_epoch) :
-            stage_range = int(self.epoch_ranges[e,1] - self.epoch_ranges[e,0]) + 1
-            stage.extend([self.stages[e] for i in range(stage_range)])
+        if len(self.stages)>1 :
+            for e in range(self.n_epoch) :
+                for n_stg in range(len(self.stages)) :
+                    next_stg = self.stages[n_stg+1] if n_stg<len(self.stages)-1 else self.stages[0]
+                    start = self.stage_starts[self.stages[n_stg]][e]
+                    end = self.stage_starts[next_stg][e]-1
+                    stage.extend([self.stages[n_stg] for i in range(end-start+1)])
+        else :
+            stage = [self.stages[0] for t in range(len(time))]
         df['Stage'] = stage
         # CSV出力
         df.to_csv(csv_fn, index=False)
