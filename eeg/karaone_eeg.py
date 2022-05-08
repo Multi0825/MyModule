@@ -257,13 +257,10 @@ class KaraoneEEG():
         return new_data
     
 
-    def save_data(self, csv_fn, labels_fn=None, include_labels=False) : 
+    def save_data(self, csv_fn) : 
         '''
         データ保存
-        out_path : 保存ディレクトリ(無ければ作成)
         csv_fn : データCSVファイル名
-        labels_fn : ラベルファイル(Noneなら無し)
-        include_labels : CSVにラベルのカラムを含めるか
         '''
         # 時間、エポック、電極(データ)のカラムを作成
         df = pd.DataFrame()
@@ -275,21 +272,16 @@ class KaraoneEEG():
         df['Epoch'] = epoch
         ch_datas = self.get_data().T * 1e+6 
         df[self.ch_names] = ch_datas
-        # ラベルを含める
-        if include_labels :
-            label = []
-            for e in range(self.n_epoch) :
-                label_range = int(self.epoch_ranges[e,1] - self.epoch_ranges[e,0]) + 1
-                label.extend([self.epoch_labels[e] for i in range(label_range)])
-            df['Label'] = label
+
+        label = []
+        for e in range(self.n_epoch) :
+            label_range = int(self.epoch_ranges[e,1] - self.epoch_ranges[e,0]) + 1
+            label.extend([self.epoch_labels[e] for i in range(label_range)])
+        df['Label'] = label
         # CSV出力
         df.to_csv(csv_fn, index=False)
         print(csv_fn+' has been created')
-        # ラベル出力
-        if labels_fn is not None :
-            with open(labels_fn, mode='w') as f:
-                f.write('\n'.join(self.epoch_labels))
-            print(labels_fn+' has been created')
+
         
 
         
