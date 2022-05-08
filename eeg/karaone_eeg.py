@@ -262,22 +262,29 @@ class KaraoneEEG():
         データ保存
         csv_fn : データCSVファイル名
         '''
-        # 時間、エポック、電極(データ)のカラムを作成
+        # Time
         df = pd.DataFrame()
         time = self.raw.times
         df['Time:{}Hz'.format(int(self.sfreq))] = time
+        # エポック
         epoch = np.zeros((len(time)))
         for e in range(self.n_epoch):
             epoch[int(self.epoch_ranges[e,0]):int(self.epoch_ranges[e,1])+1] = e
         df['Epoch'] = epoch
         ch_datas = self.get_data().T * 1e+6 
         df[self.ch_names] = ch_datas
-
+        # ラベル
         label = []
         for e in range(self.n_epoch) :
             label_range = int(self.epoch_ranges[e,1] - self.epoch_ranges[e,0]) + 1
             label.extend([self.epoch_labels[e] for i in range(label_range)])
         df['Label'] = label
+        # ステージ
+        stage = []
+        for e in range(self.n_epoch) :
+            stage_range = int(self.epoch_ranges[e,1] - self.epoch_ranges[e,0]) + 1
+            stage.extend([self.stages[e] for i in range(stage_range)])
+        df['Stage'] = stage
         # CSV出力
         df.to_csv(csv_fn, index=False)
         print(csv_fn+' has been created')
