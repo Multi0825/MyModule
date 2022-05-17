@@ -5,33 +5,6 @@ import numpy as np
 import torch.nn as nn
 import scipy.stats as stats
 
-# 電極名:(y,x) 左上が(0,0)
-ch_map = {'FP1':(0,3), 'AF3':(1,3), 'F7':(2,0), 'F3':(2,2), 'FC1':(3,3), 'FC5':(3,1), 'T7':(4,0), 'C3':(4,2), 
-          'CP1':(5,3), 'CP5':(5,1), 'P7':(6,0), 'P3':(6,2), 'PZ':(6,4), 'PO3':(7,3), 'O1':(8,3), 'OZ':(8,4), 
-          'O2':(8,5), 'PO4':(7,5), 'P4':(6,6), 'P8':(6,8),'CP6':(5,7), 'CP2':(5,5), 'C4':(4,6), 'T8':(4,8), 
-          'FC6':(3,7), 'FC2':(3,5), 'F4':(2,6), 'F8':(2,8), 'AF4':(1,5), 'FP2':(0,5), 'FZ':(2,4), 'CZ':(4,4)}
-
-def channels_mapping(data, len_seq=10, ch_names=list(ch_map.keys()), sfreq=128, mesh_size=9) :
-        '''
-        時間単位でメッシュに32電極をマッピング(n_sample x len_seq x sfreq x mesh_size x mesh_size)
-        data: n_sample x n_ch x n_data
-        len_seq: 時間長(min=1, max=n_data/sfreq)
-        ch_names: 電極名リスト
-        sfreq: サンプリング周波数
-        mesh_size: メッシュ一辺
-        '''
-        n_sample = data.shape[0]
-        # メッシュ単位の標準化(=ch単位)
-        data = stats.zscore(data, axis=1)
-        # マッピング
-        meshes = np.zeros((n_sample, len_seq, sfreq, mesh_size, mesh_size)) # 論文と次元の順番が違う(Keras<->Torch) 
-        for n, ch in enumerate(ch_names) :
-            x = ch_map[ch][1]
-            y = ch_map[ch][0]
-            for l_s in range(len_seq) :
-                meshes[:,l_s,:,y,x] = data[:,n,sfreq*l_s : sfreq*(l_s+1)]
-        return meshes
-
 class TimeDistributed(nn.Module) :
     '''
     KerasのTimeDistributedの模倣
@@ -55,14 +28,7 @@ class TimeDistributed(nn.Module) :
         x = self.module(x.view(bs*seq_len, *in_shape[2:]))
         return x.view(bs, seq_len, *x.shape[1:])
 
-# 電極名:(y,x) 左上が(0,0)
-ch_map = {'FP1':(0,3), 'AF3':(1,3), 'F7':(2,0), 'F3':(2,2), 'FC1':(3,3), 'FC5':(3,1), 'T7':(4,0), 'C3':(4,2), 
-          'CP1':(5,3), 'CP5':(5,1), 'P7':(6,0), 'P3':(6,2), 'PZ':(6,4), 'PO3':(7,3), 'O1':(8,3), 'OZ':(8,4), 
-          'O2':(8,5), 'PO4':(7,5), 'P4':(6,6), 'P8':(6,8),'CP6':(5,7), 'CP2':(5,5), 'C4':(4,6), 'T8':(4,8), 
-          'FC6':(3,7), 'FC2':(3,5), 'F4':(2,6), 'F8':(2,8), 'AF4':(1,5), 'FP2':(0,5), 'FZ':(2,4), 'CZ':(4,4)}
-
-
-class CNN_GRU(nn.Module) :
+class CNN_RNN(nn.Module) :
     def __init__(self,
                  n_cls,
                  sfreq,
@@ -78,6 +44,7 @@ class CNN_GRU(nn.Module) :
                  size_check=False
                  ) :
         '''
+        CNN-GRU,LSTM(https://arxiv.org/pdf/1807.03147.pdf)を再現
         sfreq: サンプリング周波数
         mesh_size: メッシュ一辺
         filters: (CNN1, CNN2, CNN3)
@@ -167,23 +134,4 @@ class CNN_GRU(nn.Module) :
                 print('{}:{}'.format(name, x.size()))
         return x
 
-# Test
-if __name__=='__main__' :
-    import torch
-    n_sample = 100
-    ch_names = list({'FP1':(0,3), 'AF3':(1,3), 'F7':(2,0), 'F3':(2,2), 'FC1':(3,3), 'FC5':(3,1), 'T7':(4,0), 'C3':(4,2), 
-              'CP1':(5,3), 'CP5':(5,1), 'P7':(6,0), 'P3':(6,2), 'PZ':(6,4), 'PO3':(7,3), 'O1':(8,3), 'OZ':(8,4), 
-              'O2':(8,5), 'PO4':(7,5), 'P4':(6,6), 'P8':(6,8),'CP6':(5,7), 'CP2':(5,5), 'C4':(4,6), 'T8':(4,8), 
-              'FC6':(3,7), 'FC2':(3,5), 'F4':(2,6), 'F8':(2,8), 'AF4':(1,5), 'FP2':(0,5), 'FZ':(2,4), 'CZ':(4,4)}.keys())
-    n_ch = len(ch_names)
-    sfreq = 128
-    len_seq = 5
-    data = torch.rand(n_sample, n_ch, sfreq*len_seq)
-    
-    cnn_gru = CNN_GRU(len_seq=len_seq, sfreq=sfreq, ch_names=ch_names, size_check=True)
-    x = cnn_gru(data)
-    print(x.size())
-    # print('0,9,0={}'.format(out[0,9,0]))
-    # print(h.size())
-    # print('4,0,0={}'.format(h[4,0,0]))
 
