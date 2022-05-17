@@ -1,6 +1,8 @@
 import numpy as np
 import scipy.stats as stats
-from ..utils.my_util import no_duplicated_randint
+import sys
+sys.path.append('../')
+from utils.my_util import no_duplicated_randint
 
 # 電極名:(y,x) 左上が(0,0)
 ch_map = {'FP1':(0,3), 'AF3':(1,3), 'F7':(2,0), 'F3':(2,2), 'FC1':(3,3), 'FC5':(3,1), 'T7':(4,0), 'C3':(4,2), 
