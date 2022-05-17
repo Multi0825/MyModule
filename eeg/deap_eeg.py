@@ -23,15 +23,17 @@ class DeapEEG() :
     '''
     csv形式のEEGファイルを読み込む
     '''
-    def __init__(self, dat_fn, ch_fn, sfreq=128) :
+    def __init__(self, dat_fn, ch_fn, sfreq=128, n_ch=32, trial_range=(3,63)) :
         '''
         dat_fn: DEAPdatファイル(前処理有)
         ch_fn: 電極ファイル
-        sfreq: サンプリング周波数(128Hz)
+        sfreq: サンプリング周波数(Default 128Hz)
+        n_ch: 電極数(Default 32, 脳波電極以外33~40)
+        trial_range: 対象区間(Default 3~63, 準備期間0~3s)
         '''
         # data: n_epoch x n_ch x n_data
         # labels: n_epoch x 4
-        self.data, self.labels = read_deap_dat(dat_fn, sfreq=sfreq)
+        self.data, self.labels = read_deap_dat(dat_fn, sfreq, n_ch, trial_range)
         self.sfreq = sfreq
         with open(ch_fn,'r') as f :
             self.ch_names = f.readline().replace('\n','').split(',')
