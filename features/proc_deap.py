@@ -11,8 +11,8 @@ ch_map = {'FP1':(0,3), 'AF3':(1,3), 'F7':(2,0), 'F3':(2,2), 'FC1':(3,3), 'FC5':(
           'FC6':(3,7), 'FC2':(3,5), 'F4':(2,6), 'F8':(2,8), 'AF4':(1,5), 'FP2':(0,5), 'FZ':(2,4), 'CZ':(4,4)}
 
 def subsampling(data, labels, n_select=5, n_split=6,
-                     valence=(None,5), arousal=(None,5), dominance=(None,None), liking=(None,None), 
-                     random_seed=None) :
+                valence=(None, None), arousal=(None, None), dominance=(None,None), liking=(None,None), 
+                random_seed=None) :
     '''
     DEAP Subsampling
     ラベルに対応するエポックをn_select個選択(未満は無し)、n_split個に分割
