@@ -37,7 +37,7 @@ class DeapEEG() :
         self.sfreq = sfreq
         with open(ch_fn,'r') as f :
             self.ch_names = f.readline().replace('\n','').split(',')
-        self.ch_names[0:n_ch]
+        self.ch_names = self.ch_names[0:n_ch]
         self.n_ch = n_ch
         self.label_names = ['Valence','Arousal','Dominance','Liking']
         self.n_epoch = self.data.shape[0]
