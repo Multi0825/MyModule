@@ -42,7 +42,7 @@ class EpocEEG():
         else :
             self.epoch_labels = [0 for e in range(self.n_epoch)]
             self.labels = ['0']
-        # エポックの範囲(データ点番号)
+        # エポックの範囲(n_epoch x 2(start,end))
         self.epoch_ranges = np.zeros((self.n_epoch, 2)) # エポックの範囲(開始点, 終了点)
         for e in range(self.n_epoch) :
             self.epoch_ranges[e,0] = df[df['Epoch']==e].index[0]
@@ -50,8 +50,9 @@ class EpocEEG():
         
         # ステージ(ない場合もある)
         if 'Stage' in cols :
-            self.stages = list(np.unique(df['Stage'].values))
-            self.stage_starts = dict() # ステージの開始点stage x epoch(全てのステージは連続を前提、次のステージの開始点-1が終了点)
+            self.stages = list(np.unique(df['Stage'].values)) # ステージ一覧
+            self.stage_starts = dict() # ステージの開始点(全てのステージは連続を前提、次のステージの開始点-1が終了点)
+                                       # n_stage x epoch
             for stg in self.stages :
                 self.stage_starts[stg] = []
                 for e in range(self.n_epoch) :
@@ -243,7 +244,20 @@ class EpocEEG():
                 epoch_data[ch] = epoch_data[ch] - epoch_means[ch]    
             new_data = np.concatenate([new_data, epoch_data], axis=1)
         return new_data
-    
+
+    def resampling(self, new_sfreq,*args,**kwargs) :
+        '''
+        リサンプリング
+        new_sfreq: 変更後サンプリング周波数
+        その他: mne.io.Rawを参照
+        '''
+        rate = new_sfreq / self.sfreq # 割合
+        # 帳尻合わせ
+        self.epoch_range = self.epoch_range * rate
+        self.starge_starts = self.starge_starts * rate
+        # リサンプリング
+        self.raw = self.raw.resample(new_sfreq, *args, **kwargs)
+        self.sfreq = new_sfreq
 
     def save_data(self, csv_fn) : 
         '''
@@ -284,8 +298,8 @@ class EpocEEG():
         # CSV出力
         df.to_csv(csv_fn, index=False)
         print(csv_fn+' has been created')
-        
 
+    
 
 # class Preprocesser() :
 #     def __init__(self) :
