@@ -253,7 +253,7 @@ class EpocEEG():
         '''
         rate = new_sfreq / self.sfreq # 割合
         # 帳尻合わせ
-        self.epoch_range = self.epoch_range * rate
+        self.epoch_ranges = self.epoch_ranges * rate
         self.starge_starts = self.starge_starts * rate
         # リサンプリング
         self.raw = self.raw.resample(new_sfreq, *args, **kwargs)
