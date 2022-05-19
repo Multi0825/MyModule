@@ -57,7 +57,7 @@ class EpocEEG():
                 self.stage_starts[stg] = []
                 for e in range(self.n_epoch) :
                     self.stage_starts[stg].append(df[(df['Stage']==stg) & (df['Epoch']==e)].index[0])
-
+                self.stage_starts[stg] = np.array(self.stage_starts[stg])
     
     def get_data(self, target_epoch=None, target_chs=None):
         '''
@@ -254,7 +254,8 @@ class EpocEEG():
         rate = new_sfreq / self.sfreq # 割合
         # 帳尻合わせ
         self.epoch_ranges = self.epoch_ranges * rate
-        self.stage_starts = self.stage_starts * rate
+        for s in self.stages : 
+        self.stage_starts[s] = self.stage_starts[s] * rate
         # リサンプリング
         self.raw = self.raw.resample(new_sfreq, *args, **kwargs)
         self.sfreq = new_sfreq
