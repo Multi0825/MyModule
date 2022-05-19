@@ -49,6 +49,7 @@ class EpocEEG():
             self.epoch_ranges[e,1] = df[df['Epoch']==e].index[-1] 
         
         # ステージ(ない場合もある。)
+        self.stages = None
         if 'Stage' in cols :
             self.stages = list(np.unique(df['Stage'].values)) # ステージ一覧
             self.stage_starts = dict() # ステージの開始点(全てのステージは連続を前提、次のステージの開始点-1が終了点)
@@ -254,11 +255,11 @@ class EpocEEG():
         rate = new_sfreq / self.sfreq # 割合
         # 帳尻合わせ
         self.epoch_ranges = (self.epoch_ranges*rate).astype(int)
-        for stg in self.stages : 
-            self.stage_starts[stg] = (self.stage_starts[stg]*rate).astype(int)
+        if self.stages is not None :
+            for stg in self.stages : 
+                self.stage_starts[stg] = (self.stage_starts[stg]*rate).astype(int)
         # リサンプリング
         self.raw = self.raw.resample(new_sfreq, *args, **kwargs)
-        print(type(self.raw))
         self.sfreq = new_sfreq
 
     def save_data(self, csv_fn) : 
