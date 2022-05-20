@@ -8,6 +8,14 @@ import matplotlib.pyplot as plot
 import pandas as pd
 import mne
 
+ch_names = ['FP1', 'FPZ', 'FP2', 'AF3', 'AF4', 'F7', 'F5', 'F3', 
+            'F1', 'FZ', 'F2', 'F4', 'F6', 'F8', 'FT7', 'FC5', 
+            'FC3', 'FC1', 'FCZ', 'FC2', 'FC4', 'FC6', 'FT8', 'T7', 
+            'C5', 'C3', 'C1', 'CZ', 'C2', 'C4', 'C6', 'T8', 
+            'TP7', 'CP5', 'CP3', 'CP1', 'CPZ', 'CP2', 'CP4', 'CP6', 
+            'TP8', 'P7', 'P5', 'P3', 'P1', 'PZ', 'P2', 'P4', 
+            'P6', 'P8', 'PO7', 'PO5', 'PO3', 'POZ', 'PO4', 'PO6', 
+            'PO8', 'CB1', 'OZ', 'O2', 'CB2', 'O1'] # 62
 
 class KaraoneEEG():
     '''
@@ -27,7 +35,7 @@ class KaraoneEEG():
         # KARAONE有効チャンネル数
         n_ch = 62
         self.n_ch = n_ch
-        self.ch_names = cols.to_list()[2:2+self.n_ch] 
+        self.ch_names = ch_names
         data = df.loc[:, self.ch_names].values.T * 1e-6 # mne : V, epoc : μV
         self.sfreq = int(cols[0].split(':')[1].replace('Hz', '')) 
         info = mne.create_info(ch_names=self.ch_names, sfreq=self.sfreq, ch_types='eeg') # ch

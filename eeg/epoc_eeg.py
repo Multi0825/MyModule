@@ -4,6 +4,9 @@ import matplotlib.pyplot as plot
 import pandas as pd
 import mne
 
+ch_names = ['F3', 'FC5', 'AF3', 'F7', 'T7', 'P7', 'O1', \
+            'O2', 'P8', 'T8', 'F8', 'AF4', 'FC6', 'F4']
+
 class EpocEEG():
     '''
     Emotiv Epoc出力データを読み込み用クラス
@@ -13,17 +16,15 @@ class EpocEEG():
         csv_fn : EmotivEpocから出力されたCSV(列: Time:[sfreq]Hz, Epoch, CH1,...CH14, (Label)でなければならない)
         labels_fn : 各エポックがなんのイベントに対応しているかを示すファイル(行番号=エポックで1行1ラベル)
         include_labels : CSVがラベルのカラムを含んでいるか
+        target_stage: 対象ステージ
         '''
         df = pd.read_csv(csv_fn)
         cols = df.columns
         # mne raw構造体を作成
         # EmotivEpocチャンネル数
         n_ch = 14
-        # ch_names = ['F3', 'FC5', 'AF3', 'F7', 'T7', 'P7', 'O1', \
-        #            'O2', 'P8', 'T8', 'F8', 'AF4', 'FC6', 'F4']
-        # ch = cols.to_list()[ch_inds[0]:ch_inds[1]] # 電極数を可変にする場合
         self.n_ch = n_ch
-        self.ch_names = cols.to_list()[2:2+self.n_ch] 
+        self.ch_names = ch_names
         data = df.loc[:, self.ch_names].values.T * 1e-6 # mne : V, epoc : μV
         self.sfreq = int(cols[0].split(':')[1].replace('Hz', '')) 
         info = mne.create_info(ch_names=self.ch_names, sfreq=self.sfreq, ch_types='eeg') # ch
