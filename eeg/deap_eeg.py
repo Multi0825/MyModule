@@ -41,7 +41,12 @@ class DeapEEG() :
         self.n_ch = n_ch
         self.label_names = ['Valence','Arousal','Dominance','Liking']
         self.n_epoch = self.data.shape[0]
-        
+        continuous_data = self.data[0] # n_ch x (n_epoch x n_data)
+        for e in range(1, self.n_epoch):
+            continuous_data = np.concatenate([continuous_data, self.data[e]], axis=1)
+        info = mne.create_info(ch_names=self.ch_names, sfreq=self.sfreq, ch_types='eeg') # ch
+        self.raw = mne.io.RawArray(continuous_data, info) # mne Raw構造体
+
 
     # def get_data(self, target_epoch=None, target_chs=None, cutoff=(None, None)):
     #     '''
