@@ -30,6 +30,8 @@ class TimeDistributed(nn.Module) :
     '''
     KerasのTimeDistributedの模倣
     tcapelle Thomas Capelle(https://discuss.pytorch.org/t/timedistributed-cnn/51707/11)
+    batch(dim0) x len_seq(dim1) x dim2...とあるときに
+    対象レイヤにbatch(dim0xdim1) x dim2...として入力する
     '''
     def __init__(self, module):
         '''
@@ -46,7 +48,7 @@ class TimeDistributed(nn.Module) :
             return self.module(x)
         in_shape = x.shape
         bs, seq_len = in_shape[0], in_shape[1]
-        x = self.module(x.view(bs*seq_len, *in_shape[2:]))
+        x = self.module(x.contiguous().view(bs*seq_len, *in_shape[2:])) # contiguousはメモリ並び替え(ないとviewができないときが)
         return x.view(bs, seq_len, *x.shape[1:])
 
 
