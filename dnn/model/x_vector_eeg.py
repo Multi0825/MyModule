@@ -5,7 +5,7 @@
 import torch.nn as nn
 import torch.nn.functional as F
 import torch
-from my_layers import TimeDistributed, CustomLayer
+from .my_layers import TimeDistributed, CustomLayer
 
 class TDNN(nn.Module):
     '''
