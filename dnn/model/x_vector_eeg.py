@@ -92,6 +92,7 @@ class X_Vector(nn.Module):
     context_sizes: tdnnのcontext_size(要素数n_tdnnのタプル)
     n_segment: segment数
     out_segment: segmentの出力次元(要素数n_segmentのタプル)
+    out: 最終出力が予測結果orベクトル
     size_check: サイズ確認用
     '''
     def __init__(self, 
@@ -103,6 +104,7 @@ class X_Vector(nn.Module):
                  context_sizes=(5,3),
                  n_segment=1,
                  out_segment=(100,),
+                 out='pred',
                  size_check=False):
         super().__init__()
         self.layers = {}
@@ -124,11 +126,12 @@ class X_Vector(nn.Module):
         self.layers['output'] = nn.Linear(input_dim, n_classes)
         self.layers['softmax'] = nn.Softmax(dim=1)
         self.layers = nn.ModuleDict(self.layers)
+        self.out = out
         self.size_check = size_check
     
     def forward(self, x):
         '''
-        分類結果とx-vectorを返す
+        分類結果 or x-vectorを返す
         x: n_batch x seq_len x n_ch x n_feat 
         '''
         for name, layer in self.layers.items() :
@@ -137,7 +140,11 @@ class X_Vector(nn.Module):
                 vec = x # x-vectorを保持
             if self.size_check :
                 print('{}:{}'.format(name, x.size()))
-        return x, vec
+        # 最終出力が予測結果 or x-vector
+        if self.out=='vec' :
+            return vec # batch x out_segment[-1]
+        else :
+            return x # batch x num_classes
 
 if __name__=='__main__' :
     import torch
