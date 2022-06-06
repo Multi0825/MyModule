@@ -4,7 +4,7 @@ from scipy import signal, fft, stats
 import pywt
         
 # 窓関数を適用し、n_win*n_ch*frame_sizeのデータ作成
-# data : n_ch * n_sample
+# data : n_ch * n_data
 # win_type : 窓関数種類(ハミング)
 # frame_size : 窓長サンプル点(None: All)
 # overlap_rate : フレームサイズに対するオーバーラップ率0~1(None: 0)
