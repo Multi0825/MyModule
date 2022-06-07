@@ -94,7 +94,7 @@ class X_Vector(nn.Module):
                  context_sizes=(5,3),
                  n_segment=1,
                  out_segment=(100,),
-                 out='pred',
+                 out_type='pred',
                  size_check=False):
         '''
         n_classes: 分類ラベル数
@@ -105,7 +105,7 @@ class X_Vector(nn.Module):
         context_sizes: tdnnのcontext_size(要素数n_tdnnのタプル)
         n_segment: segment数
         out_segment: segmentの出力次元(要素数n_segmentのタプル)
-        out: 最終出力が予測結果orベクトル
+        out_type: 最終出力が予測結果orベクトル(pred or vec)
         size_check: サイズ確認用
         '''
         super().__init__()
@@ -128,7 +128,7 @@ class X_Vector(nn.Module):
         self.layers['output'] = nn.Linear(input_dim, n_classes)
         self.layers['softmax'] = nn.Softmax(dim=1)
         self.layers = nn.ModuleDict(self.layers)
-        self.out = out
+        self.out_type = out_type
         self.size_check = size_check
     
     def forward(self, x):
@@ -143,7 +143,7 @@ class X_Vector(nn.Module):
             if self.size_check :
                 print('{}:{}'.format(name, x.size()))
         # 最終出力が予測結果 or x-vector
-        if self.out=='vec' :
+        if self.out_type=='vec' :
             return vec # batch x out_segment[-1]
         else :
             return x # batch x num_classes
@@ -170,7 +170,8 @@ if __name__=='__main__' :
                   context_sizes=(5,3),
                   n_segment=1,
                   out_segment=(100,),
+                  out_type='pred',
                   size_check=True)
-    pred, vec = xv(data)
+    pred = xv(data)
     print('Pred: {}'.format(pred.shape)) # batch x num_classes
-    print('Vec: {}'.format(vec.shape)) # batch x out_segment[-1]
+    # print('Vec: {}'.format(vec.shape)) # batch x out_segment[-1]
