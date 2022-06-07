@@ -29,6 +29,9 @@ class TimeDistributed(nn.Module) :
         return x.view(bs, seq_len, *x.shape[1:])
 
 class CNN_RNN(nn.Module) :
+    '''
+    CNN-GRU,LSTM(https://arxiv.org/pdf/1807.03147.pdf)を再現
+    '''
     def __init__(self,
                  n_cls,
                  sfreq,
@@ -44,7 +47,6 @@ class CNN_RNN(nn.Module) :
                  size_check=False
                  ) :
         '''
-        CNN-GRU,LSTM(https://arxiv.org/pdf/1807.03147.pdf)を再現
         sfreq: サンプリング周波数
         mesh_size: メッシュ一辺
         filters: (CNN1, CNN2, CNN3)

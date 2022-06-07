@@ -84,16 +84,6 @@ class TDNN(nn.Module):
 class X_Vector(nn.Module):
     '''
     X-VectorをEEG用に改変
-    n_classes: 分類ラベル数
-    n_ch: 電極数
-    input_dim: data.shape[-1]
-    n_tdnn: tdnn数
-    out_tdnn: tdnn出力次元(要素数n_tdnnのタプル)
-    context_sizes: tdnnのcontext_size(要素数n_tdnnのタプル)
-    n_segment: segment数
-    out_segment: segmentの出力次元(要素数n_segmentのタプル)
-    out: 最終出力が予測結果orベクトル
-    size_check: サイズ確認用
     '''
     def __init__(self, 
                  n_classes,
@@ -106,6 +96,18 @@ class X_Vector(nn.Module):
                  out_segment=(100,),
                  out='pred',
                  size_check=False):
+        '''
+        n_classes: 分類ラベル数
+        n_ch: 電極数
+        input_dim: data.shape[-1]
+        n_tdnn: tdnn数
+        out_tdnn: tdnn出力次元(要素数n_tdnnのタプル)
+        context_sizes: tdnnのcontext_size(要素数n_tdnnのタプル)
+        n_segment: segment数
+        out_segment: segmentの出力次元(要素数n_segmentのタプル)
+        out: 最終出力が予測結果orベクトル
+        size_check: サイズ確認用
+        '''
         super().__init__()
         self.layers = {}
         self.layers['dimshuffle'] =  CustomLayer(lambda x : x.permute(0,2,1,3)) # 次元1,2を入れ替え
