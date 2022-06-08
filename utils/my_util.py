@@ -7,7 +7,8 @@ import random
 import matplotlib.pyplot as plt
 import scipy.stats as stats
 from sklearn import preprocessing
-import logging
+import math
+from decimal import Decimal, ROUND_HALF_UP
 from logging import getLogger, Formatter, StreamHandler, FileHandler
 
 def get_root_dir() :
@@ -201,6 +202,15 @@ def normalize(data, axis=0) :
     else :
         raise ValueError('axis = 0 or 1')
     return nor_data
+
+def rnd(n, digit=0.1) :
+    '''
+    指定桁を四捨五入
+    digit: 桁指定(..., 10, 1, 0.1,...)
+    '''
+    digit = digit*10 # デフォルトが非直観的だったから修正(0指定すると0.1を四捨五入みたいな)
+    digit = '1E{}'.format(int(math.log10(digit))) if digit>=1 else str(digit)
+    return Decimal(n).quantize(Decimal(digit), rounding=ROUND_HALF_UP)
 
 class Logger() :
     '''

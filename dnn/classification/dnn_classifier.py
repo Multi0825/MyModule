@@ -321,8 +321,8 @@ class DNNClassifier(_TrainerBase):
     def conf_mats(self, train=False) :
         '''
         混同行列生成(epoch x conf_mat)
-        TN FP
-        FN TP
+        TN(0,0) FP(0,1)
+        FN(1,0) TP(1,1)
         train: 訓練結果を対象に(デフォルトはテスト)
         '''
         n_outputs = self.train_labels.size(0) if train else self.test_labels.size(0)
