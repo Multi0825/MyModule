@@ -207,6 +207,7 @@ def rnd(n, digit=0.1) :
     '''
     指定桁を四捨五入
     digit: 桁指定(..., 10, 1, 0.1,...)
+    * numpy.ndarrayとかでエラー
     '''
     digit = digit*10 # デフォルトが非直観的だったから修正(0指定すると0.1を四捨五入みたいな)
     digit = '1E{}'.format(int(math.log10(digit))) if digit>=1 else str(digit)
