@@ -100,12 +100,21 @@ class EpocEEG():
         target_epoch : 指定エポック(None:全範囲)
         '''
         if target_epoch is None :
+            if data.shape == original_data.shape :
+                self.raw[:,:] = data
+            else :
+                import warnings
+                warnings.warn('Shape of setting data is not same as original one,\n \
+                               so there is risks some variable(epoch range, stage) is incorrect.')
+            
             self.raw[:,:] = data
+
         else :
             original_data, _= self.raw[:,int(self.epoch_ranges[target_epoch,0]):int(self.epoch_ranges[target_epoch,1])+1]
             if data.shape == original_data.shape :
                 self.raw[:,int(self.epoch_ranges[target_epoch,0]):int(self.epoch_ranges[target_epoch,1])+1] = data # スライスでは末尾+1
-
+            else :
+                raise ValueError('When target_epoch is set, Shape of setting data is must be same as original one')
 
     def plot_data(self, target_chs=None, target_epoch=None, tmin=None, tmax=None, scalings=None, block=True, show=True, title=None, out_fn=None):
         '''
