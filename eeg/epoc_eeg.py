@@ -96,21 +96,20 @@ class EpocEEG():
     def set_data(self, data, target_epoch=None) :
         '''
         データ更新
-        data : 対象データ
+        ただし形が同じもののみ、いずれは自動で調整できるシステムを
+        data : 対象データ(n_ch x n_data)
         target_epoch : 指定エポック(None:全範囲)
         '''
-        if target_epoch is None :
-            if data.shape is not self.get_data().shape :
-                import warnings
-                warnings.warn('Shape of setting data is not same as original one,\n \
-                               so there is risks some variable(epoch range, stage) is incorrect.')                
-            self.raw[:,:] = data
+        original = self.get_data(target_epoch=target_epoch)
+        if data.shape[0] != original.shape[0] :
+            raise ValueError('Number of channel is not matched')
+        elif data.shape[1] != original.shape[1] :
+            raise ValueError('Number of data is not matched')
         else :
-            original_data, _= self.raw[:,int(self.epoch_ranges[target_epoch,0]):int(self.epoch_ranges[target_epoch,1])+1]
-            if data.shape == original_data.shape :
-                self.raw[:,int(self.epoch_ranges[target_epoch,0]):int(self.epoch_ranges[target_epoch,1])+1] = data # スライスでは末尾+1
+            if target_epoch is None :               
+                self.raw[:,:] = data
             else :
-                raise ValueError('When target_epoch is set, Shape of setting data is must be same as original one')
+                self.raw[:,int(self.epoch_ranges[target_epoch,0]):int(self.epoch_ranges[target_epoch,1])+1] = data # スライスでは末尾+1
 
     def plot_data(self, target_chs=None, target_epoch=None, tmin=None, tmax=None, scalings=None, block=True, show=True, title=None, out_fn=None):
         '''
@@ -293,7 +292,7 @@ class EpocEEG():
             label.extend([self.epoch_labels[e] for i in range(label_range)])
         df['Label'] = label
         # Stage
-        if self.stage is not None :
+        if self.stages is not None :
             stage = []
             if len(self.stages)>1 :
                 for e in range(self.n_epoch) :
