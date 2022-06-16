@@ -53,6 +53,7 @@ class EpocEEG():
         self.stages = None
         if 'Stage' in cols :
             _, i_stgs = np.unique(df['Stage'].values, return_index=True)
+            print(i_stgs)
             i_stgs= sorted(i_stgs)
             self.stages = [df['Stage'][i] for i in i_stgs]
             # self.stages = list(np.unique(df['Stage'].values)) # ステージ一覧
@@ -60,7 +61,7 @@ class EpocEEG():
                                        # n_stage x epoch
             for stg in self.stages :
                 self.stage_starts[stg] = []
-                for eeeg in range(self.n_epoch) :
+                for e in range(self.n_epoch) :
                     self.stage_starts[stg].append(df[(df['Stage']==stg) & (df['Epoch']==e)].index[0])
                 self.stage_starts[stg] = np.array(self.stage_starts[stg])
     
