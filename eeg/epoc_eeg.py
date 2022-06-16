@@ -72,7 +72,7 @@ class EpocEEG():
         target_chs = self.ch_names if target_chs is None else target_chs
         # エポック指定
         if target_epoch is None:
-            data, _ = self.raw[target_chs,:] # n_ch*n_data
+            data, _ = self.raw[:,:] # n_ch*n_data
         else : 
             data, _ = self.raw[target_chs,int(self.epoch_ranges[target_epoch,0]):int(self.epoch_ranges[target_epoch,1])+1]
         return data
