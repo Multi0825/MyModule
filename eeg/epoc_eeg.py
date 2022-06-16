@@ -100,15 +100,11 @@ class EpocEEG():
         target_epoch : 指定エポック(None:全範囲)
         '''
         if target_epoch is None :
-            if data.shape == original_data.shape :
-                self.raw[:,:] = data
-            else :
+            if data.shape is not original_data.shape :
                 import warnings
                 warnings.warn('Shape of setting data is not same as original one,\n \
-                               so there is risks some variable(epoch range, stage) is incorrect.')
-            
+                               so there is risks some variable(epoch range, stage) is incorrect.')                
             self.raw[:,:] = data
-
         else :
             original_data, _= self.raw[:,int(self.epoch_ranges[target_epoch,0]):int(self.epoch_ranges[target_epoch,1])+1]
             if data.shape == original_data.shape :
@@ -297,17 +293,19 @@ class EpocEEG():
             label.extend([self.epoch_labels[e] for i in range(label_range)])
         df['Label'] = label
         # Stage
-        stage = []
-        if len(self.stages)>1 :
-            for e in range(self.n_epoch) :
-                for n_stg in range(len(self.stages)) :
-                    next_stg = self.stages[n_stg+1] if n_stg<len(self.stages)-1 else self.stages[0]
-                    start = self.stage_starts[self.stages[n_stg]][e]
-                    end = self.stage_starts[next_stg][e]-1
-                    stage.extend([self.stages[n_stg] for i in range(end-start+1)])
-        else :
-            stage = [self.stages[0] for t in range(len(time))]
-        df['Stage'] = stage
+        if self.stage is not None :
+            stage = []
+            if len(self.stages)>1 :
+                for e in range(self.n_epoch) :
+                    for n_stg in range(len(self.stages)) :
+                        # resting,0 -> ... -> speaking,0 -> resting, 1
+                        next_stg = self.stages[0] if n_stg==len(self.stages)-1 else self.stages[n_stg+1]
+                        start = self.stage_starts[self.stages[n_stg]][e]
+                        end = self.stage_starts[next_stg][e]-1 if n_stg==len(self.stages)-1 else self.stage_starts[next_stg][e+1]-1
+                        stage.extend([self.stages[n_stg] for i in range(end-start+1)])
+            else :
+                stage = [self.stages[0] for t in range(len(time))]
+            df['Stage'] = stage
         # CSV出力
         df.to_csv(csv_fn, index=False)
         print(csv_fn+' has been created')
