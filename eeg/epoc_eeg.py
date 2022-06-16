@@ -297,10 +297,16 @@ class EpocEEG():
             if len(self.stages)>1 :
                 for e in range(self.n_epoch) :
                     for n_stg in range(len(self.stages)) :
-                        # resting,0 -> ... -> speaking,0 -> resting, 1
-                        next_stg = self.stages[0] if n_stg==len(self.stages)-1 else self.stages[n_stg+1]
+                        # resting,0 -> ... -> speaking,0 -> resting, 1 -> ...
+
+                        next_stg = self.stages[0] if n_stg==len(self.stages)-1 else self.stages[n_stg+1] 
                         start = self.stage_starts[self.stages[n_stg]][e]
-                        end = self.stage_starts[next_stg][e]-1 if n_stg==len(self.stages)-1 else self.stage_starts[next_stg][e+1]-1
+                        if e == self.n_epoch-1 :
+                            next_stg = n_stg if n_stg==len(self.stages)-1 else self.stages[n_stg+1]
+                            end = self.stage_starts[next_stg][e]-1
+                        else :
+                            end = self.stage_starts[next_stg][e+1]-1 if n_stg==len(self.stages)-1 else self.stage_starts[next_stg][e]-1
+                        
                         stage.extend([self.stages[n_stg] for i in range(end-start+1)])
             else :
                 stage = [self.stages[0] for t in range(len(time))]
