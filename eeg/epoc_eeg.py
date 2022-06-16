@@ -52,7 +52,7 @@ class EpocEEG():
         # ステージ(ない場合もある。)
         self.stages = None
         if 'Stage' in cols :
-            self.stages = [df['stage'][i_stg] for i_stg in np.unique(df['Stage'].values, return_index=True)]
+            self.stages = [df['Stage'][i_stg] for i_stg in np.unique(df['Stage'].values, return_index=True)]
             # self.stages = list(np.unique(df['Stage'].values)) # ステージ一覧
             self.stage_starts = dict() # ステージの開始点(全てのステージは連続を前提、次のステージの開始点-1が終了点)
                                        # n_stage x epoch
