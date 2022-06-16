@@ -100,7 +100,7 @@ class EpocEEG():
         target_epoch : 指定エポック(None:全範囲)
         '''
         if target_epoch is None :
-            if data.shape is not original_data.shape :
+            if data.shape is not self.raw[:,:].shape :
                 import warnings
                 warnings.warn('Shape of setting data is not same as original one,\n \
                                so there is risks some variable(epoch range, stage) is incorrect.')                
