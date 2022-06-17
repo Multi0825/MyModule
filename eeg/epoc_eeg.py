@@ -19,6 +19,9 @@ class EpocEEG():
         target_stage: 対象ステージ
         '''
         df = pd.read_csv(csv_fn)
+        if target_stage is not None :
+            df = df[df['Stage']==target_stage]
+            df = df.reset_index(drop=True)
         cols = df.columns
         # mne raw構造体を作成
         # EmotivEpocチャンネル数
@@ -53,8 +56,7 @@ class EpocEEG():
         self.stages = None
         if 'Stage' in cols :
             _, i_stgs = np.unique(df['Stage'].values, return_index=True)
-            self.stages = [df['Stage'][i] for i in sorted(i_stgs)]
-            # self.stages = list(np.unique(df['Stage'].values)) # ステージ一覧
+            self.stages = [df['Stage'][i] for i in sorted(i_stgs)] # ステージ一覧
             self.stage_starts = dict() # ステージの開始点(全てのステージは連続を前提、次のステージの開始点-1が終了点)
                                        # n_stage x epoch
             for stg in self.stages :
