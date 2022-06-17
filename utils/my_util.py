@@ -137,37 +137,61 @@ def no_duplicated_randint(a, b, n, random_seed=None):
         y.append(x.pop(j))
     return y
 
-def equalize(a, b, random_seed=None) :
+def equalize(a, b, increase=False,random_seed=None) :
     '''
-    データ量を均一化(少ない方を増加)
+    データ量を均一化(少量増加or多量減少)
+    a,b: data
+    increase: True=少量増加, False=多量減少
+    random_seed: seed
     '''
-    a = list(a)
-    b = list(b)
-    add_inds = []
-    a_is_more = True if len(a) > len(b) else False # 戻り値の順番保持用
-    more = a if a_is_more else b
-    less = b if a_is_more else a
-    n_more = len(more)
-    n_less = len(less)
-    # できる限り重複を減らす
-    while n_more > n_less :
-        # 2倍以上差があるときはn_lessだけ追加
-        if n_more >= 2*n_less:
-            add_inds.extend(no_duplicated_randint(0, n_less, n_less, random_seed=random_seed))
-            n_less = 2 * n_less
-        # さもなくば差分追加
-        else :
-            add_inds.extend(no_duplicated_randint(0, n_less, n_more-n_less, random_seed=random_seed))
-            n_more = n_less
-    # 追加
-    for ai in add_inds :
-        less.append(less[ai])
+    # 増加
+    if increase :
+        a = list(a)
+        b = list(b)
+        add_inds = []
+        a_is_more = True if len(a) > len(b) else False # 戻り値の順番保持用
+        more = a if a_is_more else b
+        less = b if a_is_more else a
+        n_more = len(more)
+        n_less = len(less)
+        # できる限り重複を減らす
+        while n_more > n_less :
+            # 2倍以上差があるときはn_lessだけ追加
+            if n_more >= 2*n_less:
+                add_inds.extend(no_duplicated_randint(0, n_less, n_less, random_seed=random_seed))
+                n_less = 2 * n_less
+            # さもなくば差分追加
+            else :
+                add_inds.extend(no_duplicated_randint(0, n_less, n_more-n_less, random_seed=random_seed))
+                n_more = n_less
+        # 追加
+        for ai in add_inds :
+            less.append(less[ai])
 
-    # 入力の順を保持
-    if a_is_more :
-        return more, less # 戻り値はリスト化される
+        # 入力の順を保持
+        if a_is_more :
+            return more, less # 戻り値はリスト化される
+        else :
+            return less, more
+    # 減少
     else :
-        return less, more
+        a = list(a)
+        b = list(b)
+        a_is_more = True if len(a) > len(b) else False # 戻り値の順番保持用
+        more = a if a_is_more else b
+        less = b if a_is_more else a
+        n_more = len(more)
+        n_less = len(less)
+
+        # 多い方からランダムに削除
+        n_remained = no_duplicated_randint(0, n_more, n_less, random_seed=random_seed)
+        more = [more[n] for n in n_remained]
+
+        # 入力の順を保持
+        if a_is_more :
+            return more, less # 戻り値はリスト化される
+        else :
+            return less, more
 
 def shuffle(data, random_seed=None) :
     '''

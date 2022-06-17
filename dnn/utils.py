@@ -144,3 +144,4 @@ def eval_classification(y_pred, y) :
     kappa     = cohen_kappa_score(y, y_pred) # κ係数
     conf      = confusion_matrix(y, y_pred) # 混同行列
     return ac_score, precision, recall, f1, kappa, conf
+
