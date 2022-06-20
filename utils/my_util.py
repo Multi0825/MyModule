@@ -11,6 +11,7 @@ import math
 from decimal import Decimal, ROUND_HALF_UP
 from logging import getLogger, Formatter, StreamHandler, FileHandler
 import itertools
+import datetime as dt
 
 def get_root_dir() :
     '''
@@ -347,7 +348,7 @@ def gen_paramset(param_fn, paramset_fn='paramset.csv'):
         for id_set, vc in enumerate(val_combs) :
             wf.write(('{}'+',{}'*n_param+'\n').format(id_set,*vc))
 
-def iter_paramset(paramset_fn) :
+def iter_paramset(paramset_fn='paramset.csv') :
     '''
     gen_paramsetで生成したCSVを元にイテレーション
     '''
@@ -365,3 +366,10 @@ def iter_paramset(paramset_fn) :
             val_combs.append(val_comb)
     for vc in val_combs :
         yield vc # dict({id_set:val, param1:val,...})
+
+def currenttime(format='%Y%m%d%H%M%S') :
+    '''
+    現在の年、日付、時刻等
+    '''
+    currenttime = dt.datetime.now(dt.timezone(dt.timedelta(),'JST'))
+    return currenttime.strftime(format)

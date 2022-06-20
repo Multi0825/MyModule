@@ -1,7 +1,32 @@
-# オリジナルNN
+# 単純なNN(適当)
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
+# こっちのが新しい
+class SimpleModel(nn.Module) :
+    def __init__(self, in_feat, out_feat, 
+                 mid_feat=(100,), activation=nn.ReLU, size_check=False) :
+        super().__init__()
+        self.layers = {}
+        # self.layers['flatten'] = nn.Flatten()
+        self.layers['in'] = nn.Linear(in_feat, mid_feat[-1])
+        self.layers['act1'] = activation()
+        for n in range(len(mid_feat)) :
+            midout = out_feat if n==(len(mid_feat)-1) else mid_feat[n+1]
+            self.layers['mid{}'.format(n)] = nn.Linear(mid_feat[n], midout)
+            self.layers['act{}'.format(n+1)] = activation()
+        self.layers['out'] = nn.Linear(midout, out_feat)
+        self.layers['act{}'.format(2+len(mid_feat))] = nn.Softmax()
+        self.layers = nn.ModuleDict(self.layers)
+        self.size_check = size_check
+
+    def forward(self, x) :
+        for name, layer in self.layers.items() :
+            x = layer(x)
+            if self.size_check :
+                print('{}:{}'.format(name, x.size()))
+        return x
 
 class NN(nn.Module) :
     # n_in: 入力次元
@@ -37,3 +62,4 @@ class NN(nn.Module) :
                 # 出力層のみ活性化関数に入れない(CrossEntropyがSoftMaxを含むため)
                 x = layer(x)
         return x.squeeze() # 不要な次元を削除
+
