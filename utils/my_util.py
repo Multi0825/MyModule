@@ -10,6 +10,7 @@ from sklearn import preprocessing
 import math
 from decimal import Decimal, ROUND_HALF_UP
 from logging import getLogger, Formatter, StreamHandler, FileHandler
+import itertools
 
 def get_root_dir() :
     '''
@@ -319,3 +320,48 @@ class Logger() :
         %(threadName)s      -> MainThread -> スレッド名
         '''
         self.handlers[handler_id].setFormatter(Formatter(fmt))
+
+def gen_paramset(param_fn, paramset_fn='paramset.csv'):
+    '''
+    param.txt
+        param1:val1,val2,...
+        param2:val1,val2,...
+        ...
+    から組み合わせ全通りのリストを生成
+    paramset.csv
+        id_set,param1,param2,...
+        0,val1,val1,...
+        1,val1,val2,...
+    '''
+    # パラメータ読み込み
+    with open(param_fn, 'r') as rf, open(paramset_fn, 'w') as wf :
+        paramset = {} # param:[val1,val2,...]
+        for l in rf :
+            param, vals = l.replace('\n', '').split(':')
+            paramset[param] = vals.split(',')
+        n_param = len(paramset.keys())
+        vals = list(paramset.values()) 
+        val_combs = list(itertools.product(*vals)) 
+        wf.write(('{}'+',{}'*n_param+'\n').format('id_set',*paramset.keys()))
+        
+        for id_set, vc in enumerate(val_combs) :
+            wf.write(('{}'+',{}'*n_param+'\n').format(id_set,*vc))
+
+def iter_paramset(paramset_fn) :
+    '''
+    gen_paramsetで生成したCSVを元にイテレーション
+    '''
+    with open(paramset_fn,'r') as f :
+        params = f.readline().replace('\n','').split(',')
+        val_combs = []
+        for l in f :
+            val_comb = {}
+            for p,v in zip(params,l.replace('\n','').split(',')) :
+                # pdb.set_trace()
+                try: # float or int
+                    val_comb[p] = float(v) if '.' in v else int(v)
+                except ValueError: # str
+                    val_comb[p] = v
+            val_combs.append(val_comb)
+    for vc in val_combs :
+        yield vc # dict({id_set:val, param1:val,...})
