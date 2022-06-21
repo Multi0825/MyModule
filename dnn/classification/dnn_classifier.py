@@ -318,12 +318,14 @@ class DNNClassifier(_TrainerBase):
                    self.test_losses, self.test_accs
 
 
-    def conf_mats(self, train=False) :
+    def conf_mats(self, train=False, dict=False) :
         '''
-        混同行列生成(epoch x conf_mat)
+        混同行列生成
         TN(0,0) FP(0,1)
         FN(1,0) TP(1,1)
         train: 訓練結果を対象に(デフォルトはテスト)
+        dict: 返り値 True-> dict,{'TN':[e0,...,eN],'FP':[e0,...,eN],...}
+                     False-> np.array, n_epoch x 2 x 2
         '''
         n_outputs = self.train_labels.size(0) if train else self.test_labels.size(0)
         conf_mats = []
@@ -333,8 +335,13 @@ class DNNClassifier(_TrainerBase):
             epoch_labels = self.train_labels[no].to(torch.int) if train else self.test_labels[no].to(torch.int) 
             c_m = confusion_matrix(epoch_labels, out2cls) # 混同行列
             conf_mats.append(c_m)
-        return np.array(conf_mats)
+        conf_mats = np.array(conf_mats)
+        if dict :
+            return {'TN':conf_mats[:,0,0], 'FP':conf_mats[:,0,1], 'FN':conf_mats[:,1,0], 'TP':conf_mats[:,1,1]}
+        else :
+            return conf_mats
     
+
     def scores(self, train=False) :
         '''
         分類問題評価指標(Accuracy, Precision, Recall, Specificiy)取得(epoch x conf_mat)
@@ -347,8 +354,6 @@ class DNNClassifier(_TrainerBase):
         recs = names_confs['TP'] / (names_confs['TP']+names_confs['FN'])# 再現率 TP/(TP+FN)
         specs = names_confs['TN'] / (names_confs['FP']+names_confs['TN'])# 特異率 TN/(FP+TN)
         return accs, precs, recs, specs
-
-
 
 
     def outputs_test_results(self, log_fn=None, stream=True) :
