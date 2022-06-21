@@ -371,5 +371,5 @@ def currenttime(format='%Y%m%d%H%M%S') :
     '''
     現在の年、日付、時刻等
     '''
-    currenttime = dt.datetime.now(dt.timezone(dt.timedelta(),'JST'))
+    currenttime = dt.datetime.now()
     return currenttime.strftime(format)
