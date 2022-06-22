@@ -1,7 +1,7 @@
 # Sklearn MLモデルで分類
 import os
 import numpy as np
-from sklearn.metrics import confusion_matrix
+from sklearn.metrics import confusion_matrix, accuracy_score
 
 class MLClassifier() :   
     '''
@@ -17,51 +17,37 @@ class MLClassifier() :
         if init_seed is not None :
             model_args['random_state'] = init_seed
         self.model=model(**model_args)
-        # テスト
-        self.test_outputs = 0 # 出力
-        self.test_accs = 0 # 精度
 
 
-    def train_test(self, train_x, train_y, test_x, test_y, only_acc=True) :
+    def train_test(self, train_x, train_y, test_x, test_y, return_type='acc') :
         '''
         訓練+テスト
         train_x: 訓練データ(numpy.ndarray)
         train_y: 訓練ラベル(numpy.ndarray)
         test_x: テストデータ(numpy.ndarray)
         test_y: テストラベル(numpy.ndarray)
+        return_type: 'acc', 'conf', 'conf_dict','score'
         '''
         self.model.fit(train_x, train_y)
-        pred = self.tr_model.predict(test_x) # 予測結果
-        acc = confusion_matrix(test_y, pred) # 精度
-
-    def conf_mats(self) :
-        '''
-        混同行列生成(epoch x conf_mat)
-        TN(0,0) FP(0,1)
-        FN(1,0) TP(1,1)
-        train: 訓練結果を対象に(デフォルトはテスト)
-        '''
-        n_outputs = self.train_labels.size(0) if train else self.test_labels.size(0)
-        conf_mats = []
-        for no in range(n_outputs) :
-            epoch_outputs = self.train_outputs[no] if train else self.test_outputs[no]
-            _, out2cls = epoch_outputs.max(dim=1) # 出力をクラスに変換
-            epoch_labels = self.train_labels[no].to(torch.int) if train else self.test_labels[no].to(torch.int) 
-            c_m = confusion_matrix(epoch_labels, out2cls) # 混同行列
-            conf_mats.append(c_m)
-        return np.array(conf_mats)
+        self.test_output = self.model.predict(test_x) # 予測結果
+        self.conf_mat = confusion_matrix(test_y, self.test_outputs) # 精度
+        self.conf_dict = {'TN':self.conf_mat[0,0], 'FP':self.conf_mat[0,1], 'FN':self.conf_mat[1,0], 'TP':self.conf_mat[1,1] }
+        acc = (self.conf_dict['TP']+self.conf_dict['TN']) / np.sum(self.conf_mat) # 正解率 TP+TN/ALL
+        prec = self.conf_dict['TP'] / (self.conf_dict['TP']+self.conf_dict['FP']) # 適合率 TP/(TP+FP)
+        rec = self.conf_dict['TP'] / (self.conf_dict['TP']+self.conf_dict['FN'])# 再現率 TP/(TP+FN)
+        spec = self.conf_dict['TN'] / (self.conf_dict['FP']+self.conf_dict['TN'])# 特異率 TN/(FP+TN)
+        self.score = {'acc':acc,'prec':prec,'rec':rec,'spec':spec}
+        if return_type is 'score':
+            return self.score
+        elif return_type is 'conf_dict' :
+            return self.conf_dict
+        elif return_type is 'conf' :
+            return  self.conf_mat
+        else :
+            return acc
+        
+        
+if __name__=='__main__' :
+    import sklearn.svm.SVC
     
-    def scores(self, train=False) :
-        '''
-        分類問題評価指標(Accuracy, Precision, Recall, Specificiy)取得(epoch x conf_mat)
-        train: 訓練結果を対象
-        '''
-        conf_mats = self.conf_mats(train=train)
-        names_confs = {'TN':conf_mats[:,0,0], 'FP':conf_mats[:,0,1], 'FN':conf_mats[:,1,0], 'TP':conf_mats[:,1,1] }
-        accs = (names_confs['TP']+names_confs['TN']) / np.sum(conf_mats.reshape((conf_mats.shape[0], -1)), axis=1) # 正解率 TP+TN/ALL
-        precs = names_confs['TP'] / (names_confs['TP']+names_confs['FP']) # 適合率 TP/(TP+FP)
-        recs = names_confs['TP'] / (names_confs['TP']+names_confs['FN'])# 再現率 TP/(TP+FN)
-        specs = names_confs['TN'] / (names_confs['FP']+names_confs['TN'])# 特異率 TN/(FP+TN)
-        return accs, precs, recs, specs  
-
 
