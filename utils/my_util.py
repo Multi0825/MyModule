@@ -321,6 +321,24 @@ class Logger() :
         %(threadName)s      -> MainThread -> スレッド名
         '''
         self.handlers[handler_id].setFormatter(Formatter(fmt))
+def read_param(param_fn) :
+    '''
+    param.txt
+        param1:value
+        ...
+    return dict
+    '''
+    # パラメータ読み込み
+    params_values = {}
+    with open(param_fn, 'r') as rf :
+        for l in rf :
+            param, val = l.replace('\n', '').split(':')
+            try: # float or int
+                params_values[param] = float(val) if '.' in val else int(val)
+            except ValueError: # str
+                params_values[param] = val
+    return params_values
+
 
 def gen_paramset(param_fn, paramset_fn='paramset.csv'):
     '''
@@ -358,7 +376,6 @@ def iter_paramset(paramset_fn='paramset.csv') :
         for l in f :
             val_comb = {}
             for p,v in zip(params,l.replace('\n','').split(',')) :
-                # pdb.set_trace()
                 try: # float or int
                     val_comb[p] = float(v) if '.' in v else int(v)
                 except ValueError: # str
