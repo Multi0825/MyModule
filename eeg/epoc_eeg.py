@@ -266,7 +266,7 @@ class EpocEEG():
         self.epoch_ranges = (self.epoch_ranges*rate).astype(int)
         if self.stages is not None :
             for stg in self.stages : 
-                self.stage_starts[stg] = (self.stage_starts[stg]*rate).astype(int)
+                self.stage_starts[stg] = [(ss*rate).astype(int) for ss in self.stage_starts[stg]]
         # リサンプリング
         self.raw = self.raw.resample(new_sfreq, *args, **kwargs)
         self.sfreq = new_sfreq
