@@ -253,6 +253,23 @@ class KaraoneEEG():
         self.raw.drop_channels(ch_names=['STI'])
 
 
+    def resampling(self, new_sfreq,*args,**kwargs) :
+        '''
+        リサンプリング
+        new_sfreq: 変更後サンプリング周波数
+        その他: mne.io.Rawを参照
+        '''
+        rate = new_sfreq / self.sfreq # 割合
+        # 帳尻合わせ
+        self.epoch_ranges = (self.epoch_ranges*rate).astype(int)
+        if self.stages is not None :
+            for stg in self.stages : 
+                self.stage_starts[stg] = (self.stage_starts[stg]*rate).astype(int)
+        # リサンプリング
+        self.raw = self.raw.resample(new_sfreq, *args, **kwargs)
+        self.sfreq = new_sfreq
+
+
     # 基準値減算したデータ取得(各エポック毎、各電極の平均値をオリジナルから引く)
     def remove_baseline(self) :
         new_data = np.empty((self.n_ch,0))
