@@ -263,6 +263,11 @@ class EpocEEG():
         '''
         rate = new_sfreq / self.sfreq # 割合
         # 帳尻合わせ
+        start = 0
+        for e in range(self.n_epoch) :
+            prev_start,prev_end = self.epoch_ranges[e,0],self.epoch_ranges[e,1]
+            range = (prev_end-prev_start+1) / self.sfreq * new_sfreq
+            
         self.epoch_ranges = (self.epoch_ranges*rate).astype(int)
         if self.stages is not None :
             for stg in self.stages : 
