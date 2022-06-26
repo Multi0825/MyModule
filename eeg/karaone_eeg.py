@@ -283,7 +283,7 @@ class KaraoneEEG():
             new_epoch_ranges[e,1] = new_data.shape[1]-1
             for stg in self.stages :
                 start = int((self.stage_starts[stg][e]-self.epoch_ranges[e,0]) / rate)
-                new_stage_starts[stg][e] = start if self.stages.index(stg)!=0 else new_epoch_ranges[e,0]
+                new_stage_starts[stg][e] = start+new_epoch_ranges[e,0] if self.stages.index(stg)!=0 else new_epoch_ranges[e,0]
         self.sfreq = new_sfreq
         info = mne.create_info(ch_names=self.ch_names, sfreq=self.sfreq, ch_types='eeg') # ch
         self.raw = mne.io.RawArray(new_data, info) # mne Raw構造体
