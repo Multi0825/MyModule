@@ -325,9 +325,9 @@ class KaraoneEEG():
                 for e in range(self.n_epoch) :
                     for n_stg,stg in enumerate(self.stages) :
                         # resting,0 -> ... -> speaking,0 -> resting, 1 -> ...
-                        next_stg = self.stages[0] if n_stg==len(self.stages)-1 else self.stages[n_stg+1] 
+                        next_stg = self.stages[0] if n_stg==(len(self.stages)-1) else self.stages[n_stg+1] 
                         start = self.stage_starts[stg][e]
-                        end = self.stage_starts[next_stg][e]-1 if n_stg!=len(self.stages)-1 else self.epoch_ranges[e,1]
+                        end = self.stage_starts[next_stg][e]-1 if n_stg!=(len(self.stages)-1) else self.epoch_ranges[e,1]
                         stage.extend([stg for i in range(int(end-start+1))])
             else :
                 stage = [self.stages[0] for t in range(len(time))]
