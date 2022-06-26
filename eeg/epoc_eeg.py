@@ -52,7 +52,7 @@ class EpocEEG():
             self.epoch_ranges[e,0] = df[df['Epoch']==e].index[0]
             self.epoch_ranges[e,1] = df[df['Epoch']==e].index[-1] 
         
-        # ステージ(ない場合もある。)
+        # ステージ
         self.stage = [] # ステージ一覧
         self.stage_starts = dict() # ステージの開始点(全てのステージは連続を前提、次のステージの開始点-1が終了点)
                                    # n_stage x epoch
@@ -280,7 +280,7 @@ class EpocEEG():
             new_epoch_ranges[e,1] = new_data.shape[1]-1
             for stg in self.stages :
                 start = int((self.stage_starts[stg][e]-self.epoch_ranges[e,0]) / rate)
-                new_stage_starts[stg][e] = start if self.stages.index(stg)!=0 else new_epoch_ranges[e,0]
+                new_stage_starts[stg][e] = start+new_epoch_ranges[e,0] if self.stages.index(stg)!=0 else new_epoch_ranges[e,0]
         self.sfreq = new_sfreq
         info = mne.create_info(ch_names=self.ch_names, sfreq=self.sfreq, ch_types='eeg') # ch
         self.raw = mne.io.RawArray(new_data, info) # mne Raw構造体
@@ -317,9 +317,9 @@ class EpocEEG():
             for e in range(self.n_epoch) :
                 for n_stg,stg in enumerate(self.stages) :
                     # resting,0 -> ... -> speaking,0 -> resting, 1 -> ...
-                    next_stg = self.stages[0] if n_stg==len(self.stages)-1 else self.stages[n_stg+1] 
+                    next_stg = self.stages[(n_stg+1)%len(self.stages)] 
                     start = self.stage_starts[stg][e]
-                    end = self.stage_starts[next_stg][e]-1 if n_stg!=len(self.stages)-1 else self.epoch_ranges[e,1]
+                    end = self.stage_starts[next_stg][e]-1 if n_stg!=(len(self.stages)-1) else self.epoch_ranges[e,1]
                     stage.extend([stg for i in range(int(end-start+1))])
         else :
             stage = [self.stages[0] for t in range(len(time))]
