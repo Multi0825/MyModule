@@ -257,24 +257,28 @@ class EpocEEG():
 
     def resampling(self, new_sfreq,*args,**kwargs) :
         '''
-        リサンプリング
+        リサンプリング(epochの範囲等も調整)
         new_sfreq: 変更後サンプリング周波数
-        その他: mne.io.Rawを参照
+        その他: mne.filter.resampleを参照
         '''
-        rate = new_sfreq / self.sfreq # 割合
-        # 帳尻合わせ
-        start = 0
+        new_data = []
+        new_epoch_ranges = np.zeros((self.n_epoch, 2))
+        new_stage_starts = {stg:[0 for i in range(self.n_epoch)] for stg in self.stages}
+        rate = self.sfreq / new_sfreq
+        # エポック毎にresampling
         for e in range(self.n_epoch) :
-            prev_start,prev_end = self.epoch_ranges[e,0],self.epoch_ranges[e,1]
-            range = (prev_end-prev_start+1) / self.sfreq * new_sfreq
-            
-        self.epoch_ranges = (self.epoch_ranges*rate).astype(int)
-        if self.stages is not None :
-            for stg in self.stages : 
-                self.stage_starts[stg] = [(ss*rate).astype(int) for ss in self.stage_starts[stg]]
-        # リサンプリング
-        self.raw = self.raw.resample(new_sfreq, *args, **kwargs)
-        self.sfreq = new_sfreq
+            new_epoch_ranges[e,0] = new_data.shape[1] if e!=0 else 0
+            epoch_data = self.get_data(target_epoch=e)
+            if rate >= 1.0 : # Down
+                epoch_data = mne.filter.resample(epoch_data, down=rate,*args, **kwargs)
+            else : # Up
+                epoch_data = mne.filter.resample(epoch_data, up=rate,*args, **kwargs)
+            new_data = np.concatenate([new_data, epoch_data], axis=1) if e!=0 else epoch_data
+            new_epoch_ranges[e,1] = new_data.shape[1]-1
+            for stg in self.stages :
+                start = (self.stage_starts[stg][e]-self.epoch_ranges[e,0]) / rate
+                new_stage_starts[stg][e] = start
+
 
     def save_data(self, csv_fn) : 
         '''
@@ -305,15 +309,12 @@ class EpocEEG():
             stage = []
             if len(self.stages)>1 :
                 for e in range(self.n_epoch) :
-                    for n_stg in range(len(self.stages)) :
+                    for n_stg,stg in enumerate(self.stages) :
                         # resting,0 -> ... -> speaking,0 -> resting, 1 -> ...
                         next_stg = self.stages[0] if n_stg==len(self.stages)-1 else self.stages[n_stg+1] 
-                        start = self.stage_starts[self.stages[n_stg]][e]
-                        if e == self.n_epoch-1 :
-                            end = len(label)-1 if n_stg==len(self.stages)-1 else self.stage_starts[next_stg][e]-1
-                        else :
-                            end = self.stage_starts[next_stg][e+1]-1 if n_stg==len(self.stages)-1 else self.stage_starts[next_stg][e]-1
-                        stage.extend([self.stages[n_stg] for i in range(end-start+1)])
+                        start = self.stage_starts[stg][e]
+                        end = self.stage_starts[next_stg][e]-1 if n_stg!=len(self.stages)-1 else self.epoch_ranges[e,1]
+                        stage.extend([stg for i in range(end-start+1)])
             else :
                 stage = [self.stages[0] for t in range(len(time))]
             df['Stage'] = stage
