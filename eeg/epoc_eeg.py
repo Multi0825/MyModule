@@ -276,8 +276,8 @@ class EpocEEG():
             new_data = np.concatenate([new_data, epoch_data], axis=1) if e!=0 else epoch_data
             new_epoch_ranges[e,1] = new_data.shape[1]-1
             for stg in self.stages :
-                start = (self.stage_starts[stg][e]-self.epoch_ranges[e,0]) / rate
-                new_stage_starts[stg][e] = start
+                start = int((self.stage_starts[stg][e]-self.epoch_ranges[e,0]) / rate)
+                new_stage_starts[stg][e] = start if self.stage.index(stg)!=0 else new_epoch_ranges[e,0]
 
 
     def save_data(self, csv_fn) : 
