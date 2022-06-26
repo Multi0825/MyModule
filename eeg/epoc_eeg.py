@@ -278,7 +278,11 @@ class EpocEEG():
             for stg in self.stages :
                 start = int((self.stage_starts[stg][e]-self.epoch_ranges[e,0]) / rate)
                 new_stage_starts[stg][e] = start if self.stages.index(stg)!=0 else new_epoch_ranges[e,0]
-
+        self.sfreq = new_sfreq
+        info = mne.create_info(ch_names=self.ch_names, sfreq=self.sfreq, ch_types='eeg') # ch
+        self.raw = mne.io.RawArray(new_data, info) # mne Raw構造体
+        self.epoch_ranges = new_epoch_ranges
+        self.stage_starts = new_stage_starts
 
     def save_data(self, csv_fn) : 
         '''
@@ -314,7 +318,7 @@ class EpocEEG():
                         next_stg = self.stages[0] if n_stg==len(self.stages)-1 else self.stages[n_stg+1] 
                         start = self.stage_starts[stg][e]
                         end = self.stage_starts[next_stg][e]-1 if n_stg!=len(self.stages)-1 else self.epoch_ranges[e,1]
-                        stage.extend([stg for i in range(end-start+1)])
+                        stage.extend([stg for i in range(int(end-start+1))])
             else :
                 stage = [self.stages[0] for t in range(len(time))]
             df['Stage'] = stage
