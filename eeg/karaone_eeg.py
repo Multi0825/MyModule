@@ -52,14 +52,18 @@ class KaraoneEEG():
         for e in range(self.n_epoch) :
             self.epoch_ranges[e,0] = df[df['Epoch']==e].index[0]
             self.epoch_ranges[e,1] = df[df['Epoch']==e].index[-1] 
-        
-        # ステージ(面倒な仕様にしてしまった)
-        self.stages = list(np.unique(df['Stage'].values))
-        self.stage_starts = dict() # ステージの開始点 stg x [start_e0, ... start_eN](全てのステージは連続を前提、次のステージの開始点-1が終了点)
-        for stg in self.stages :
-            self.stage_starts[stg] = []
-            for e in range(self.n_epoch) :
-                self.stage_starts[stg].append(df[(df['Stage']==stg) & (df['Epoch']==e)].index[0])
+            
+        # ステージ
+        if 'Stage' in cols :
+            _, i_stgs = np.unique(df['Stage'].values, return_index=True)
+            self.stages = [df['Stage'][i] for i in sorted(i_stgs)] # ステージ一覧
+            self.stage_starts = dict() # ステージの開始点(全てのステージは連続を前提、次のステージの開始点-1が終了点)
+                                       # n_stage x epoch
+            for stg in self.stages :
+                self.stage_starts[stg] = []
+                for e in range(self.n_epoch) :
+                    self.stage_starts[stg].append(df[(df['Stage']==stg) & (df['Epoch']==e)].index[0])
+                self.stage_starts[stg] = np.array(self.stage_starts[stg])
     
     
     def get_data(self, target_epoch=None, target_chs=None, cutoff=[None, None]):
@@ -325,7 +329,7 @@ class KaraoneEEG():
                 for e in range(self.n_epoch) :
                     for n_stg,stg in enumerate(self.stages) :
                         # resting,0 -> ... -> speaking,0 -> resting, 1 -> ...
-                        next_stg = self.stages[0] if n_stg==(len(self.stages)-1) else self.stages[n_stg+1] 
+                        next_stg = self.stages[(n_stg%len(self.stages))+1] 
                         start = self.stage_starts[stg][e]
                         end = self.stage_starts[next_stg][e]-1 if n_stg!=(len(self.stages)-1) else self.epoch_ranges[e,1]
                         stage.extend([stg for i in range(int(end-start+1))])
