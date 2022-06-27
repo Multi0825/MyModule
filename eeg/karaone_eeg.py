@@ -70,7 +70,7 @@ class KaraoneEEG():
             self.stage_starts[stg] = [0]
     
     
-    def get_data(self, target_epoch=None, target_chs=None, cutoff=[None, None]):
+    def get_data(self, target_epoch=None, target_chs=None, cutoff=(None, None)):
         '''
         データ取得
         target_epoch : 対象エポック(None:全範囲)
@@ -78,21 +78,22 @@ class KaraoneEEG():
         cutoff: 1エポック内での[min(s), max(s)]を揃える(＊Karaoneの時間のばらつきに対応)
         '''
         target_chs = self.ch_names if target_chs is None else target_chs 
-        cutoff[0] = 0 if cutoff[0] is None else cutoff[0]
+        tmin = 0 if cutoff[0] is None else cutoff[0]
+        tmax = cutoff[1]
         # エポック指定
         if target_epoch is None:
-            start = int(self.sfreq * cutoff[0])
-            end = cutoff[1] if cutoff[1] is None else int(self.sfreq * cutoff[1])
+            start = int(self.sfreq * tmin)
+            end = tmax if tmax is None else int(self.sfreq * tmax)
             data, _ = self.raw[target_chs,start:end] # n_ch*n_sample
         else : 
-            start = int(self.epoch_ranges[target_epoch,0]) + int(self.sfreq * cutoff[0])
-            end = int(self.epoch_ranges[target_epoch,1])+1 if cutoff[1] is None \
-                  else int(self.epoch_ranges[target_epoch,0]) + int(self.sfreq * cutoff[1])
+            start = int(self.epoch_ranges[target_epoch,0]) + int(self.sfreq * tmin)
+            end = int(self.epoch_ranges[target_epoch,1])+1 if tmax is None \
+                  else int(self.epoch_ranges[target_epoch,0]) + int(self.sfreq * tmax)
             data, _ = self.raw[target_chs,start:end]
         return data
     
     
-    def get_split_data(self, target_epochs=None, target_labels=None, target_chs=None, cutoff=[None, None]) :
+    def get_split_data(self, target_epochs=None, target_labels=None, target_chs=None, cutoff=(None, None)) :
         '''
         データ取得
         3次元(target_epochs(labels) x target_chs x n_sample)に加工ver.
