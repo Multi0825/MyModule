@@ -366,9 +366,10 @@ def gen_paramset(param_fn, paramset_fn='paramset.csv'):
         for id_set, vc in enumerate(val_combs) :
             wf.write(('{}'+',{}'*n_param+'\n').format(id_set,*vc))
 
-def iter_paramset(paramset_fn='paramset.csv') :
+def iter_paramset(paramset_fn='paramset.csv', target_ids=None) :
     '''
     gen_paramsetで生成したCSVを元にイテレーション
+    target_ids: 対象ID
     '''
     with open(paramset_fn,'r') as f :
         params = f.readline().replace('\n','').split(',')
@@ -380,7 +381,11 @@ def iter_paramset(paramset_fn='paramset.csv') :
                     val_comb[p] = float(v) if '.' in v else int(v)
                 except ValueError: # str
                     val_comb[p] = v
-            val_combs.append(val_comb)
+            if target_ids is not None :
+                if val_comb['id_set'] in target_ids :
+                    val_combs.append(val_comb)
+            else :
+                val_combs.append(val_comb)
     for vc in val_combs :
         yield vc # dict({id_set:val, param1:val,...})
 
