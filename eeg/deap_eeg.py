@@ -81,7 +81,7 @@ class DeapEEG() :
         target_epochs = [e for e in range(self.n_epoch)] if target_epochs is None else target_epochs
         target_chs = self.ch_names if target_chs is None else target_chs 
         target_chs = [self.ch_names.index(t_c) for t_c in target_chs] 
-        return self.data[target_epochs, target_chs, self.sfreq*cutoff[0]:self.sfreq*cutoff[1]]
+        return self.data[target_epochs, target_chs, int(self.sfreq*cutoff[0]):int(self.sfreq*cutoff[1])]
 
 
     # def set_data(self, data, target_epoch=None, cutoff=(None, None)) :
