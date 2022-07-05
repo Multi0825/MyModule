@@ -78,10 +78,14 @@ class DeapEEG() :
         target_chs: 対象電極(None:全範囲)
         cutoff: 1エポック内での[min(s), max(s)]を揃える(＊時間のばらつきに対応)
         '''
+        data = []
         target_epochs = [e for e in range(self.n_epoch)] if target_epochs is None else target_epochs
-        target_chs = self.ch_names if target_chs is None else target_chs 
+        target_chs = self.ch_names if target_chs is None else target_chs
         target_chs = [self.ch_names.index(t_c) for t_c in target_chs] 
-        return self.data[target_epochs, target_chs, int(self.sfreq*cutoff[0]):int(self.sfreq*cutoff[1])]
+        for e in range(target_epochs) : # ファンシーインデックスがよくわからないため
+            data.append(self.data[e,target_chs,int(self.sfreq*cutoff[0]):int(self.sfreq*cutoff[1])])
+        data = np.array(data)
+        return data
 
 
     # def set_data(self, data, target_epoch=None, cutoff=(None, None)) :
