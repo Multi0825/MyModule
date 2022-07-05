@@ -82,7 +82,7 @@ class DeapEEG() :
         target_epochs = [e for e in range(self.n_epoch)] if target_epochs is None else target_epochs
         target_chs = self.ch_names if target_chs is None else target_chs
         target_chs = [self.ch_names.index(t_c) for t_c in target_chs] 
-        for e in range(target_epochs) : # ファンシーインデックスがよくわからないため
+        for e in target_epochs : # ファンシーインデックスがよくわからないため
             data.append(self.data[e,target_chs,int(self.sfreq*cutoff[0]):int(self.sfreq*cutoff[1])])
         data = np.array(data)
         return data
