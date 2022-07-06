@@ -68,35 +68,44 @@ class EpocEEG():
             self.stage = ['null' for i in range(data.shape[1])]
             self.stage_starts[stg] = [0]
     
-    def get_data(self, target_epoch=None, target_chs=None):
+    def get_data(self, target_epoch=None, target_chs=None, cutoff=(None,None)):
         '''
         データ取得(2次元)
         target_epoch : 対象エポック(None:全範囲)
         target_chs : 対象電極(None:全範囲)
+        cutoff: [min(s), max(s)]を揃える
         '''
         target_chs = self.ch_names if target_chs is None else target_chs
+        tmin = 0 if cutoff[0] is None else cutoff[0]
+        tmax = cutoff[1]
         # エポック指定
         if target_epoch is None:
-            data, _ = self.raw[:,:] # n_ch*n_data
+            start = int(self.sfreq * tmin)
+            end = tmax if tmax is None else int(self.sfreq * tmax)
+            data, _ = self.raw[target_chs,start:end] # n_ch*n_data
         else : 
-            data, _ = self.raw[target_chs,int(self.epoch_ranges[target_epoch,0]):int(self.epoch_ranges[target_epoch,1])+1]
+            start = int(self.epoch_ranges[target_epoch,0]) + int(self.sfreq * tmin)
+            end = int(self.epoch_ranges[target_epoch,1])+1 if tmax is None \
+                  else int(self.epoch_ranges[target_epoch,0]) + int(self.sfreq * tmax)
+            data, _ = self.raw[target_chs,start:end]
         return data
 
     
-    def get_split_data(self, target_epochs=None, target_labels=None, target_chs=None) :
+    def get_split_data(self, target_epochs=None, target_labels=None, target_chs=None, cutoff=(None,None)) :
         '''
         データ取得
         3次元(target_epochs(labels) x target_chs x n_data)に加工ver.
         target_epochs: 対象エポック(None: 全エポック)
         target_labels: 対象ラベル(target_epochs=Noneのとき)
         target_chs: 対象電極(None:全範囲)
+        cutoff: 1エポック内での[min(s), max(s)]を揃える
         '''
         if target_epochs is None :
             if target_labels is None :
                 target_epochs = [e for e in range(self.n_epoch)]
             else :
                 target_epochs = [e for e in range(self.n_epoch) if self.epoch_labels[e] in target_labels]
-        data = np.array([self.get_data(target_epoch=e, target_chs=target_chs) for e in target_epochs])
+        data = np.array([self.get_data(target_epoch=e, target_chs=target_chs, cutoff=cutoff) for e in target_epochs])
         return data
 
     

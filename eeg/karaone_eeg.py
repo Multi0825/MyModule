@@ -84,7 +84,7 @@ class KaraoneEEG():
         if target_epoch is None:
             start = int(self.sfreq * tmin)
             end = tmax if tmax is None else int(self.sfreq * tmax)
-            data, _ = self.raw[target_chs,start:end] # n_ch*n_sample
+            data, _ = self.raw[target_chs,start:end] # n_ch*n_data
         else : 
             start = int(self.epoch_ranges[target_epoch,0]) + int(self.sfreq * tmin)
             end = int(self.epoch_ranges[target_epoch,1])+1 if tmax is None \
