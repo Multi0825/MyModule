@@ -123,15 +123,15 @@ def make_path(path_dict, ignore_ast=True) -> None :
             os.makedirs(item[1], exist_ok=True)
 
 
-def no_duplicated_randint(a, b, n, random_seed=None):
+def no_duplicated_randint(min, max, n, random_seed=None):
     '''
     重複のない乱数生成
     a, b: a <= x < b (random.randintと異なる)
     n: 個数
     '''
-    if n > np.abs(a-b) :
+    if n > np.abs(min-max) :
         raise ValueError('Must be n>=|a-b|')
-    x = [i for i in range(a, b)]
+    x = [i for i in range(min, max)]
     y = []
     for i in range(n) :
         random.seed(random_seed)
