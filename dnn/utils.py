@@ -36,9 +36,10 @@ def torch2np(data, data_type=None):
 
 def flatten(data, first_dim=True) :
     '''
+    平坦化
     first_dim: 0次元を平坦化するか
     '''
-    if type(data)=='torch.Tensor' :
+    if type(data) is 'torch.Tensor' :
         flt = torch.flatten if first_dim else torch.nn.Flatten()
         new_data = flt(data)
     else :
