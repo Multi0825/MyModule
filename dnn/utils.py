@@ -41,8 +41,8 @@ def flatten(data, first_dim=True) :
     if first_dim :
         new_data = torch.flatten(data)
     else :
-        flatten = torch.nn.Flatten()
-        new_data = flatten(data)
+        f = torch.nn.Flatten()
+        new_data = f(data)
     return new_data
 
 def split_train_test(data : np.ndarray, label, train_size=0.75, 
