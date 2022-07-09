@@ -34,6 +34,16 @@ def torch2np(data, data_type=None):
            else data.to('cpu').detach().numpy().copy().astype(data_type)
     return data
 
+def flatten(data, first_dim=True) :
+    '''
+    first_dim: 0次元を平坦化するか
+    '''
+    if first_dim :
+        new_data = torch.flatten(data)
+    else :
+        flatten = torch.nn.Flatten()
+        new_data = flatten(data)
+    return new_data
 
 def split_train_test(data : np.ndarray, label, train_size=0.75, 
                      is_shuffled=False, rand_seed=None, 
