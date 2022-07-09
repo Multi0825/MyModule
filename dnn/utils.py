@@ -38,11 +38,11 @@ def flatten(data, first_dim=True) :
     '''
     first_dim: 0次元を平坦化するか
     '''
-    if first_dim :
-        new_data = torch.flatten(data)
+    if type(data)=='torch.Tensor' :
+        flt = torch.flatten if first_dim else torch.nn.Flatten()
+        new_data = flt(data)
     else :
-        f = torch.nn.Flatten()
-        new_data = f(data)
+        new_data = np.reshape(data, (-1,)) if first_dim else np.reshape(data, (len(data),-1))
     return new_data
 
 def split_train_test(data : np.ndarray, label, train_size=0.75, 
