@@ -65,39 +65,70 @@ class EpocEEG():
                     self.stage_starts[stg].append(df[(df['Stage']==stg) & (df['Epoch']==e)].index[0])
                 self.stage_starts[stg] = np.array(self.stage_starts[stg])
         else :
-            self.stage = ['null' for i in range(data.shape[1])]
-            self.stage_starts[stg] = [0]
+            self.stage = ['null']
+            self.stage_starts['null'] = [self.epoch_ranges[e,0] for e in range(self.n_epoch)]
     
-    def get_data(self, target_epoch=None, target_chs=None, cutoff=(None,None)):
+    def get_data(self, target_epoch=None, target_chs=None, target_stage=None, cutoff=(None,None)):
         '''
         データ取得(2次元)
         target_epoch : 対象エポック(None:全範囲)
-        target_chs : 対象電極(None:全範囲)
+        target_chs : 対象電極名(None:全範囲)
+        target_stage: 対象ステージ(None:全範囲)
         cutoff: [min(s), max(s)]を揃える
+                target_epoch, target_stageを指定した場合、各エポック、ステージ毎
+                さもなければデータ全体を対象に
         '''
         target_chs = self.ch_names if target_chs is None else target_chs
+        next_stg = (self.stages.index(target_stage)+1)%len(self.stage) if self.stages.index(target_stage)==len()
         tmin = 0 if cutoff[0] is None else cutoff[0]
         tmax = cutoff[1]
-        # エポック指定
-        if target_epoch is None:
-            start = int(self.sfreq * tmin)
-            end = tmax if tmax is None else int(self.sfreq * tmax)
-            data, _ = self.raw[target_chs,start:end] # n_ch*n_data
-        else : 
-            start = int(self.epoch_ranges[target_epoch,0]) + int(self.sfreq * tmin)
-            end = int(self.epoch_ranges[target_epoch,1])+1 if tmax is None \
-                  else int(self.epoch_ranges[target_epoch,0]) + int(self.sfreq * tmax)
-            data, _ = self.raw[target_chs,start:end]
+        if target_stage is None :
+            if target_stage is None :
+                # 全体の中からtmin~tmax秒を抽出
+                start = int(self.sfreq * tmin)
+                end = tmax if tmax is None else int(self.sfreq * tmax)
+                data, _ = self.raw[target_chs,start:end] # n_ch*n_data
+            else :
+                # 対象エポックtmin~tmax秒を抽出
+                start = int(self.epoch_ranges[target_epoch,0]) + int(self.sfreq * tmin)
+                end = int(self.epoch_ranges[target_epoch,1])+1 if tmax is None \
+                    else int(self.epoch_ranges[target_epoch,0]) + int(self.sfreq * tmax)
+                data, _ = self.raw[target_chs,start:end]
+        else :
+            n_stg = self.stages.index(target_stage)
+            next_stg = self.stages[(n_stg+1)%len(self.stages)]
+            if target_epoch is None :
+                # 全エポックの中の対象ステージtmin~tmax秒を抽出し、結合
+                data = []
+                for e in range(self.n_epoch) :
+                    start = int(self.stage_starts[target_stage][e]) + int(self.sfreq*tmin)
+                    if tmax is None :
+                        end = int(self.stage_starts[next_stg][target_epoch]) if n_stg is not (len(self.n_stg)-1) else \
+                              int(self.epoch_ranges[target_epoch,1])+1
+                    else :
+                        end = int(self.stage_starts[target_stage][e]) + int(self.sfreq*tmax) 
+                    data_tmp, _ = self.raw[target_chs,start:end]
+                    data = data_tmp if e==0 else np.concatenate([data, data_tmp], axis=1)
+            else :
+                # 対象エポック中の対象ステージtmin~tmax秒を抽出
+                start = int(self.stage_starts[target_stage][target_epoch]) + int(self.sfreq*tmin)
+                if tmax is None :
+                    end = int(self.stage_starts[next_stg][target_epoch]) if n_stg is not (len(self.n_stg)-1) else \
+                          int(self.epoch_ranges[target_epoch,1])+1
+                else :
+                    end = int(self.stage_starts[target_stage][target_epoch]) + int(self.sfreq*tmax)
+                data, _ = self.raw[target_chs,start:end]
         return data
 
     
-    def get_split_data(self, target_epochs=None, target_labels=None, target_chs=None, cutoff=(None,None)) :
+    def get_split_data(self, target_epochs=None, target_labels=None, target_chs=None, target_stage=None, cutoff=(None,None)) :
         '''
         データ取得
         3次元(target_epochs(labels) x target_chs x n_data)に加工ver.
         target_epochs: 対象エポック(None: 全エポック)
         target_labels: 対象ラベル(target_epochs=Noneのとき)
         target_chs: 対象電極(None:全範囲)
+        target_stage: 対象ステージ(None:全範囲)
         cutoff: 1エポック内での[min(s), max(s)]を揃える
         '''
         if target_epochs is None :
@@ -105,7 +136,7 @@ class EpocEEG():
                 target_epochs = [e for e in range(self.n_epoch)]
             else :
                 target_epochs = [e for e in range(self.n_epoch) if self.epoch_labels[e] in target_labels]
-        data = np.array([self.get_data(target_epoch=e, target_chs=target_chs, cutoff=cutoff) for e in target_epochs])
+        data = np.array([self.get_data(target_epoch=e, target_chs=target_chs, target_stage=target_stage, cutoff=cutoff) for e in target_epochs])
         return data
 
     
