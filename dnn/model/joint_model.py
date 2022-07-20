@@ -27,7 +27,7 @@ class JointModel(nn.Module) :
     def forward(self, x) :
         # サブ
         subout = self.sub(x)
-        if self.stream=='paralell':
+        if self.stream=='parallel':
             # 入力結合
             if self.joint_func is not None :
                 x = self.joint_func(x, subout)
