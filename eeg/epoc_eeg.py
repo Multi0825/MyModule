@@ -82,7 +82,7 @@ class EpocEEG():
         tmin = 0 if cutoff[0] is None else cutoff[0]
         tmax = cutoff[1]
         if target_stage is None :
-            if target_stage is None :
+            if target_epoch is None :
                 # 全体の中からtmin~tmax秒を抽出
                 start = int(self.sfreq * tmin)
                 end = tmax if tmax is None else int(self.sfreq * tmax)
