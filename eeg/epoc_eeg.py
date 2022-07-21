@@ -79,7 +79,6 @@ class EpocEEG():
                 さもなければデータ全体を対象に
         '''
         target_chs = self.ch_names if target_chs is None else target_chs
-        next_stg = (self.stages.index(target_stage)+1)%len(self.stage) if self.stages.index(target_stage)==len()
         tmin = 0 if cutoff[0] is None else cutoff[0]
         tmax = cutoff[1]
         if target_stage is None :
@@ -103,7 +102,7 @@ class EpocEEG():
                 for e in range(self.n_epoch) :
                     start = int(self.stage_starts[target_stage][e]) + int(self.sfreq*tmin)
                     if tmax is None :
-                        end = int(self.stage_starts[next_stg][target_epoch]) if n_stg is not (len(self.n_stg)-1) else \
+                        end = int(self.stage_starts[next_stg][target_epoch]) if n_stg is not (len(self.stages)-1) else \
                               int(self.epoch_ranges[target_epoch,1])+1
                     else :
                         end = int(self.stage_starts[target_stage][e]) + int(self.sfreq*tmax) 
@@ -113,7 +112,7 @@ class EpocEEG():
                 # 対象エポック中の対象ステージtmin~tmax秒を抽出
                 start = int(self.stage_starts[target_stage][target_epoch]) + int(self.sfreq*tmin)
                 if tmax is None :
-                    end = int(self.stage_starts[next_stg][target_epoch]) if n_stg is not (len(self.n_stg)-1) else \
+                    end = int(self.stage_starts[next_stg][target_epoch]) if n_stg is not (len(self.stages)-1) else \
                           int(self.epoch_ranges[target_epoch,1])+1
                 else :
                     end = int(self.stage_starts[target_stage][target_epoch]) + int(self.sfreq*tmax)
